@@ -24,8 +24,17 @@
     background: #e1e1e1;
 }
 
-#slider{
+#control-view #control-container {
     position: relative;
     width: 80%;
     margin: auto;
+}
+
+#slider, #toolbar{
+    width: 100%;
+}
+
+#toolbar {
+    padding: 20px 0;
+    border-bottom: 1px solid #ccc;
 }

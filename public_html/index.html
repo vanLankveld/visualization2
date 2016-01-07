@@ -18,15 +18,18 @@
 
         </div>
         <div id="control-view">
-            <p style="text-align:center">
-                <label for="year">Selected year:</label>
-                <input type="text" id="year" readonly style="border:0; color:#000000; font-weight:bold;">
-            </p>
-            <div id="toolbar">
-                <button id="bt-zoom-in"></button>
-                <button id="bt-zoom-out"></button>
+            <div id="control-container">
+                <div id="toolbar">
+                    <input type="radio" name="toolbar" id="bt-select" class="interaction-el bt-select button" value="select" checked><label for="bt-select">Selection</label>
+                    <input type="radio" name="toolbar" id="bt-zoom-in" class="interaction-el bt-zoom-in button" value="zoom-in"><label for="bt-zoom-in">Zoom in</label>
+                    <input type="radio" name="toolbar" id="bt-zoom-out" class="interaction-el bt-zoom-out button" value="zoom-out"><label for="bt-zoom-out">Zoom out</label>
+                </div>
+                <p style="text-align:center">
+                    <label for="year">Selected year:</label>
+                    <input type="text" id="year" readonly style="border:0; color:#000000; font-weight:bold;">
+                </p>
+                <div id="slider"></div>
             </div>
-            <div id="slider"></div>
         </div>
         <script type="text/javascript" src="js/main.js"></script>
     </body>
