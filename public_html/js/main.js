@@ -3,16 +3,6 @@ var basic;
 var csv;
 
 $(document).ready(function () {
-
-    //Determine the dimensions of the diagram, this should be equal to the dimenions of the 'main-view' element
-    var mainView = $('#main-view');
-    var width = mainView.width();
-    var height = mainView.height();
-
-    basic = new Datamap({
-        element: document.getElementById("main-view")
-    });
-
     // Create slider
     $("#slider").slider({
         value: 2000,
@@ -27,14 +17,20 @@ $(document).ready(function () {
     // Initialize value
     $("#year").val($("#slider").slider("value"));
     
-    // Load CSV and initialize colors
     $.get('connectivity.csv', function (data) {
         var fileContents = data;
         csv = d3.csv.parse(fileContents);
-        inputColors($("#slider").slider("value"));
+        renderWorldMap();
+    });
+});
+
+function renderWorldMap() {
+    basic = new Datamap({
+        element: document.getElementById("main-view")
     });
     
-});
+    inputColors($("#slider").slider("value"));
+}
 
 function getColor(value) {
     var val = value / 100;

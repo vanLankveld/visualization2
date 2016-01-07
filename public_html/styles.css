@@ -3,10 +3,14 @@
     Author     : Guus
 */
 
+* {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
 #main-view {
     position: absolute;
     top: 0;
-    bottom: 100px;
+    bottom: 200px;
     left: 0;
     right: 0
 }
@@ -16,7 +20,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: 200px;
     background: #e1e1e1;
 }
 
