@@ -29,3 +29,9 @@
     width: 80%;
     margin: auto;
 }
+
+path {
+        fill: none;
+        stroke: black;
+        stroke-width: 2px;
+      }
