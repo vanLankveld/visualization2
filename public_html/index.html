@@ -14,17 +14,25 @@
         <script type="text/javascript" src="js/lib/datamaps.world.min.js"></script>
     </head>
     <body>
-        <div id="main-view">
+        <div id="left">
+            <div id="main-view">
 
-        </div>
-        <div id="control-view">
-            <div id="control-container">
+            </div>
+            <div id="control-view">
                 <p style="text-align:center">
                     <label for="year">Selected year:</label>
                     <input type="text" id="year" readonly style="border:0; color:#000000; font-weight:bold;">
                 </p>
+                <div id="toolbar">
+                    <button id="bt-zoom-in"></button>
+                    <button id="bt-zoom-out"></button>
+                </div>
                 <div id="slider"></div>
+                <div id="dialog"></div>
             </div>
+        </div>
+        <div id="right">
+            <div id="linePlot"></div>
         </div>
         <script type="text/javascript" src="js/main.js"></script>
     </body>
