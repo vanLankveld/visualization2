@@ -1,7 +1,8 @@
 //This is executed as soon as the page's html is loaded:
 var basic;
 var csv;
-var dataNest;
+var allCountries;
+var selectedCountries = [];
 
 $(document).ready(function () {
     // Create slider
@@ -18,14 +19,6 @@ $(document).ready(function () {
     // Initialize value
     $("#year").val($("#slider").slider("value"));
 
-    // Create dialog
-    $(function () {
-        $("#dialog").dialog({
-            width: 1.1 * outerWidth,
-            title: yColumn
-        });
-    });
-
 
     $.get('connectivity.csv', function (data) {
         var fileContents = data;
@@ -39,22 +32,45 @@ $(document).ready(function () {
 function renderWorldMap() {
     basic = new Datamap({
         element: document.getElementById("main-view"),
-//        responsive: true,
-        done: function (datamap) {
-            datamap.svg.selectAll('.datamaps-subunit').on('click', function (geography) {
-                yColumn = geography.id;
-                $('#dialog').dialog("option", "title", geography.properties.name);
-                updatePlot();
-                /*
-                 var m = {};
-                 m[geography.id] = '#000000';
-                 basic.updateChoropleth(m);
-                 */
-            });
-        }
+        projection: 'mercator',
+        done: onCountryClick
     });
-
     inputColors($("#slider").slider("value"));
+    $("#dialog .country").hide();
+}
+
+function onCountryClick(datamap) {
+    datamap.svg.selectAll('.datamaps-subunit').on('click', function (geography) {
+
+        var filterResult = allCountries.filter(function (country) {
+            return country.id === geography.id;
+        });
+
+        if (filterResult[0] == null) {
+            return;
+        }
+
+        var clickedCountry = filterResult[0];
+
+        var index = selectedIndex(clickedCountry.id);
+        if (index >= 0) {
+            selectedCountries.splice(index, 1);
+        } else {
+            selectedCountries.push(clickedCountry);
+        }
+        console.log(selectedCountries);
+        updatePlot();
+
+    });
+}
+
+function selectedIndex(clickedCountryId) {
+    for (var i = 0; i < selectedCountries.length; i++) {
+        if (selectedCountries[i].id === clickedCountryId) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 function getColor(value) {
@@ -88,28 +104,22 @@ function inputColors(year) {
     basic.updateChoropleth(JSON.parse(json));
 }
 
-////////////////////////////////////////////////////////////////////
-////////////////// TESTING /////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
 
-var outerWidth = 700;
-var outerHeight = 700;
+var outerWidth = $('#linePlot').width();
+var outerHeight = $('#linePlot').height();
 var margin = {left: 50, top: 50, right: 50, bottom: 50};
 var innerWidth = outerWidth - margin.left - margin.right;
 var innerHeight = outerHeight - margin.top - margin.bottom;
 
-var xColumn = "Year";
-var yColumn = "NLD";
-
-var svg = d3.select('#dialog').append('svg')
+var outerLinePlotSvg = d3.select('#linePlot').append('svg')
         .attr('width', outerWidth)
         .attr('height', outerHeight);
-var g = svg.append("g")
+var linePlotG = outerLinePlotSvg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-var xAxisG = g.append("g")
+var xAxisG = linePlotG.append("g")
         .attr("transform", "translate(0," + innerHeight + ")");
-var yAxisG = g.append("g");
+var yAxisG = linePlotG.append("g");
 
 var xScale = d3.scale.linear().range([0, innerWidth]);
 var yScale = d3.scale.linear().range([innerHeight, 0]);
@@ -121,16 +131,6 @@ var yAxis = d3.svg.axis().scale(yScale).orient("left")
         .ticks(5)                   // Use approximately 5 ticks marks.
         .outerTickSize(0);          // Turn off the marks at the end of the axis.
 
-var path = g.append("path");
-/*
- var line = d3.svg.line()
- .x(function (d) {
- return xScale(d[xColumn]);
- })
- .y(function (d) {
- return yScale(d[yColumn]);
- });
- */
 var line = d3.svg.line()
         //.interpolate("basis")
         .x(function (d) {
@@ -142,61 +142,45 @@ var line = d3.svg.line()
 
 
 function updatePlot() {
-    g.select(".country").attr("d", line);
+
+    var country = linePlotG.selectAll(".country")
+            .data(selectedCountries);
+
+    country.enter().append("g")
+            .attr("class", "country")
+            .attr("id", function (d) {
+                return d.id;
+            })
+            .append("path")
+            .attr("class", "line")
+            .attr("d", function (d) {
+                return line(d.values);
+            });
+
+    country.exit().remove();
+    
 }
 
-function render(data) {
+function dataInit(data) {
     xScale.domain(d3.extent(data, function (d) {
         return d["Year"];
     }));
     yScale.domain([0, 100]);
     xAxisG.call(xAxis);
     yAxisG.call(yAxis);
-    /*
-     g.append("path")
-     .datum(data)
-     .attr("class", "plot")
-     .attr("d", line);
-     */
 
-    dataNest = d3.keys(data[0]).filter(function (key) {
+    allCountries = d3.keys(data[0]).filter(function (key) {
         return key !== "Year";
     });
 
-    dataNest = dataNest.map(function (country) {
+    allCountries = allCountries.map(function (country) {
         return {
-            name: country,
+            id: country,
             values: data.map(function (d) {
                 return {Year: d.Year, Connectivity: +d[country]};
             })
         };
     });
-
-    var country = g.selectAll(".country")
-            .data(dataNest)
-            .enter().append("g")
-            .attr("class", "country");
-
-    country.append("path")
-            .attr("class", "line")
-            .attr("id", function(d) { return d.name;})
-            .attr("d", function (d) {
-                return line(d.values);
-            });
-    
-    //country.exit().remove();
-    
-    /*
-     dataNest = d3.nest()
-     .key(function(d) {return d.NLD;})
-     .entries(data);
-     
-     path.data(data)    // Doesn't seem to work, missing enter?
-     .attr("class", "plot")
-     .attr("d", line);
-     /*
-     path.attr("d", line(data));
-     */
 }
 
 function type(d) {
@@ -210,4 +194,4 @@ function type(d) {
     return d;
 }
 
-d3.csv('connectivity.csv', type, render);
+d3.csv('connectivity.csv', type, dataInit);
