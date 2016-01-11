@@ -61,8 +61,6 @@ $(document).ready(function () {
             renderWorldMap(true);
         }, 500, (afterResizeId++) + "");
     });
-
-    createToolbar();
 });
 
 function renderWorldMap(renderColors) {
@@ -115,45 +113,6 @@ function inputColors(year) {
     worldMap.updateChoropleth(JSON.parse(json));
 }
 
-function createToolbar() {
-    $('.bt-select').button({
-        icons: {
-            primary: "ui-icon-arrowthick-1-nw"
-        },
-        text: false
-    });
-
-    $('.bt-zoom-in').button({
-        icons: {
-            primary: "ui-icon-zoomin"
-        },
-        text: false
-    });
-
-    $('.bt-zoom-out').button({
-        icons: {
-            primary: "ui-icon-zoomout"
-        },
-        text: false
-    });
-    
-    $('.bt-pan').button({
-        icons: {
-            primary: "ui-icon-arrow-4"
-        },
-        text: false
-    });
-
-    $('#toolbar').buttonset();
-
-    $('.interaction-el').change(function () {
-        if ($(this).is(':checked')) {
-            interactionMode = $(this).val();
-            changeCursor();
-        }
-    });
-}
-
 function changeCursor() {
     var cursor = 'default';
     switch (interactionMode) {
@@ -171,75 +130,40 @@ function changeCursor() {
 }
 
 function setMouseEvents() {
-    d3.select("#main-view *").on('mousedown', function () {
-        var coordinates = [0, 0];
-        coordinates = d3.mouse(this);
-        dragStartX = coordinates[0];
-        dragStartY = coordinates[1];
-    });
-    
-    d3.select("#main-view *").on('mouseup', function () {
-        dragStartX = -1;
-        dragStartY = -1;
-    });
-    
-    d3.select("#main-view *").on('click', function () {
-        var coordinates = [0, 0];
-        coordinates = d3.mouse(this);
-        var x = coordinates[0];
-        var y = coordinates[1];
-        
-        if (interactionMode === INTERACTION_ZOOMIN) {
-            zoomIn(x, y);
-        }
-        else if (interactionMode === INTERACTION_ZOOMOUT) {
-            zoomOut(x, y);
-        }
-    });
-    
-    d3.select("#main-view *").on('mouseover', function () {
-        var coordinates = [0, 0];
-        coordinates = d3.mouse(this);
-        var x = coordinates[0];
-        var y = coordinates[1];
-        
-        if (interactionMode === INTERACTION_PAN && dragStartX > -1 && dragStartY > -1) {
-            d3.event.preventDefault();
-            pan(x, y);
-        }
-    });
+    var zoom = d3.behavior.zoom()
+            .scaleExtent([1, 10])
+            .on("zoom", onZoom);
+
+    worldMap.svg.call(zoom);
 }
 
-function zoomIn(zoomX, zoomY) {
-    scale *= 2;
-    translatedX = zoomX - zoomX/scale;
-    translatedY = zoomY - zoomY/scale;
-    d3.select("#main-view svg g")
-            .transition()
-            .duration(1000)
-            .ease("in-out")
-            .attr("transform", "scale("+scale+")translate(-" + (translatedX) + ", -" + (translatedY) + ")");
+function onDragStart(d) {
+    var coordinates = [0, 0];
+    coordinates = d3.mouse(this);
+    dragStartX = coordinates[0];
+    dragStartY = coordinates[1];
+    console.log("dragStart: " + dragStartX + ", " + dragStartY);
 }
 
-function zoomOut(zoomX, zoomY) {
-    scale /= 2;
-    translatedX = zoomX - zoomX/scale;
-    translatedY = zoomX - zoomX/scale;
-    if (scale <= 1) {
-        scale = 1;
-        translatedX = 0;
-        translatedY = 0;
+function onDragEnd() {
+    dragStartX = -1;
+    dragStartY = -1;
+    console.log("dragEnd");
+}
+
+function onDrag() {
+    var coordinates = [0, 0];
+    coordinates = d3.mouse(this);
+    var x = coordinates[0];
+    var y = coordinates[1];
+
+    if (interactionMode === INTERACTION_PAN) {
+        console.log("pan: " + x + ", " + y);
+        pan(x, y);
     }
-    d3.select("#main-view svg g")
-            .transition()
-            .duration(1000)
-            .ease("in-out")
-            .attr("transform", "scale("+scale+")translate(-" + (translatedX) + ", -" + (translatedY) + ")");
 }
 
-function pan(panX, panY) {
-    translatedX += panX - dragStartX;
-    translatedY += panY - dragStartY;
+function onZoom(d) {
     d3.select("#main-view svg g")
-            .attr("transform", "scale("+scale+")translate(-" + (translatedX) + ", -" + (translatedY) + ")");
+            .attr("transform", "translate(" + (d3.event.translate) + ")scale(" + d3.event.scale + ")");
 }
