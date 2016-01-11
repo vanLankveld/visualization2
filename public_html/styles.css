@@ -35,7 +35,7 @@
 #main-view {
     position: absolute;
     top: 0;
-    bottom: 15%;
+    bottom: 10%;
     left: 0;
     right: 0;
 }
@@ -45,7 +45,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 15%;
+    height: 10%;
     background: #e1e1e1;
 }
 
@@ -55,14 +55,10 @@
     margin: auto;
 }
 
-#slider, #toolbar{
+#slider{
     width: 100%;
 }
 
-#toolbar {
-    padding: 20px 0;
-    border-bottom: 1px solid #ccc;
-}
 
 path {
     fill: none;
