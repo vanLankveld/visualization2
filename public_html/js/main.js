@@ -1,6 +1,7 @@
 //This is executed as soon as the page's html is loaded:
 var basic;
 var csv;
+var dataNest;
 
 $(document).ready(function () {
     // Create slider
@@ -20,21 +21,19 @@ $(document).ready(function () {
     // Create dialog
     $(function () {
         $("#dialog").dialog({
-            width: 1.1 * outerWidth
+            width: 1.1 * outerWidth,
+            title: yColumn
         });
     });
 
-    /*
-     d3.select(window).on('resize', function() {
-     basic.resize();
-     });
-     */
 
     $.get('connectivity.csv', function (data) {
         var fileContents = data;
         csv = d3.csv.parse(fileContents);
         renderWorldMap();
     });
+
+
 });
 
 function renderWorldMap() {
@@ -44,6 +43,7 @@ function renderWorldMap() {
         done: function (datamap) {
             datamap.svg.selectAll('.datamaps-subunit').on('click', function (geography) {
                 yColumn = geography.id;
+                $('#dialog').dialog("option", "title", geography.properties.name);
                 updatePlot();
                 /*
                  var m = {};
@@ -122,17 +122,27 @@ var yAxis = d3.svg.axis().scale(yScale).orient("left")
         .outerTickSize(0);          // Turn off the marks at the end of the axis.
 
 var path = g.append("path");
-
+/*
+ var line = d3.svg.line()
+ .x(function (d) {
+ return xScale(d[xColumn]);
+ })
+ .y(function (d) {
+ return yScale(d[yColumn]);
+ });
+ */
 var line = d3.svg.line()
+        //.interpolate("basis")
         .x(function (d) {
-            return xScale(d[xColumn]);
+            return xScale(d.Year);
         })
         .y(function (d) {
-            return yScale(d[yColumn]);
+            return yScale(d.Connectivity);
         });
 
+
 function updatePlot() {
-    g.select(".plot").attr("d", line);
+    g.select(".country").attr("d", line);
 }
 
 function render(data) {
@@ -142,13 +152,45 @@ function render(data) {
     yScale.domain([0, 100]);
     xAxisG.call(xAxis);
     yAxisG.call(yAxis);
-
-    g.append("path")
-            .datum(data)
-            .attr("class", "plot")
-            .attr("d", line);
-
     /*
+     g.append("path")
+     .datum(data)
+     .attr("class", "plot")
+     .attr("d", line);
+     */
+
+    dataNest = d3.keys(data[0]).filter(function (key) {
+        return key !== "Year";
+    });
+
+    dataNest = dataNest.map(function (country) {
+        return {
+            name: country,
+            values: data.map(function (d) {
+                return {Year: d.Year, Connectivity: +d[country]};
+            })
+        };
+    });
+
+    var country = g.selectAll(".country")
+            .data(dataNest)
+            .enter().append("g")
+            .attr("class", "country");
+
+    country.append("path")
+            .attr("class", "line")
+            .attr("id", function(d) { return d.name;})
+            .attr("d", function (d) {
+                return line(d.values);
+            });
+    
+    //country.exit().remove();
+    
+    /*
+     dataNest = d3.nest()
+     .key(function(d) {return d.NLD;})
+     .entries(data);
+     
      path.data(data)    // Doesn't seem to work, missing enter?
      .attr("class", "plot")
      .attr("d", line);
