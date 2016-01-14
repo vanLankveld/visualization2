@@ -32,6 +32,13 @@
     background: #fff;
 }
 
+#diffLinePlot{
+    width:100%;
+    height: 50%;
+    margin: 10px;
+    background: #fff;
+}
+
 #main-view {
     position: absolute;
     top: 0;

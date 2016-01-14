@@ -32,6 +32,7 @@ var waitForFinalEvent = (function () {
 
 var allCountries;
 var selectedCountries = [];
+var highlightedCountry;
 
 $(document).ready(function () {
     mainView = $('#main-view');
@@ -63,6 +64,21 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
+    d3.selectAll('#main-view').on('mouseout', function () {
+        if (d3.event.target.tagName === "path") {
+            var target=d3.select(d3.event.target).data()[0].id;
+            var oldAttributes=d3.select(d3.event.target).attr("data-previousAttributes");
+            
+            d3.select(d3.event.target).style(oldAttributes);
+        }
+    });
+    d3.selectAll('#main-view').on('mouseover', function () {
+        if (d3.event.target.tagName === "path") {
+            var target=d3.select(d3.event.target).data()[0].id;
+            //d3.select(d3.event.target).style("stroke","#00f")
+            d3.select(d3.event.target).style({"stroke-width":"3px", "stroke":"f00"});
+        }
+    });
 
 });
 function renderWorldMap(renderColors) {
@@ -76,6 +92,14 @@ function renderWorldMap(renderColors) {
         element: document.getElementById("main-view"),
         projection: 'mercator',
         done: onCountryClick
+                /*
+                 geographyConfig: {
+                 popupTemplate: function (geography, data) {
+                 highlight(geography.id);
+                 return '<div class="hoverinfo">' + geography.properties.name + '<\div>';
+                 }
+                 }
+                 */
     });
 
     if (renderColors) {
@@ -83,6 +107,24 @@ function renderWorldMap(renderColors) {
     }
 
     setMouseEvents();
+}
+
+function highlight(id) {
+    highlightedCountry = id;
+    d3.select(".datamaps-subunit." + id).style("fill", "#0f0");
+    console.log(d3.select(".datamaps-subunit." + id)[0][0].__data__);
+    d3.select("#" + id).style("stroke", '#0f0');
+    /*
+     var hoverinfo = d3.select(".datamaps-hoverover");
+     console.log(hoverinfo.style("display"));
+     if (hoverinfo.style("display") === "none") {
+     // Called from a plot, not hovering a country
+     
+     } else {
+     updatePlot();
+     }
+     
+     */
 }
 
 function onCountryClick(datamap) {
@@ -104,10 +146,49 @@ function onCountryClick(datamap) {
         } else {
             selectedCountries.push(clickedCountry);
         }
-        console.log(selectedCountries);
+
+        updateColorScale();
         updatePlot();
 
     });
+}
+
+function updateColorScale() {
+    for (var i = 0; i < selectedCountries.length; i++) {
+        var newColor = colorDomain.filter(function (country) {
+            return country === selectedCountries[i].id;
+        });
+        if (newColor.length === 0) {
+            // selected country is not assigned a color yet
+            var assigned = false;
+            for (var j = 0; j < colorDomain.length; j++) {
+                var insertColor = selectedCountries.filter(function (country) {
+                    return country.id === colorDomain[j];
+                });
+                if (insertColor.length === 0) {
+                    colorDomain[j] = selectedCountries[i].id;
+                    assigned = true;
+                }
+            }
+            if (!assigned) {
+                colorDomain.push(selectedCountries[i].id);
+            }
+        }
+    }
+
+    // clean up
+    var cleaning = true;
+    while (cleaning) {
+        var lastColor = selectedCountries.filter(function (country) {
+            return country.id === colorDomain[colorDomain.length - 1];
+        });
+        if (lastColor.length !== 0) {
+            cleaning = false;
+        } else {
+            colorDomain.splice(colorDomain.length - 1, 1);
+        }
+    }
+    color.domain(colorDomain);
 }
 
 function selectedIndex(clickedCountryId) {
@@ -179,13 +260,13 @@ function onDragStart(d) {
     coordinates = d3.mouse(this);
     dragStartX = coordinates[0];
     dragStartY = coordinates[1];
-    console.log("dragStart: " + dragStartX + ", " + dragStartY);
+    //console.log("dragStart: " + dragStartX + ", " + dragStartY);
 }
 
 function onDragEnd() {
     dragStartX = -1;
     dragStartY = -1;
-    console.log("dragEnd");
+    //console.log("dragEnd");
 }
 
 function onDrag() {
@@ -195,7 +276,7 @@ function onDrag() {
     var y = coordinates[1];
 
     if (interactionMode === INTERACTION_PAN) {
-        console.log("pan: " + x + ", " + y);
+        //console.log("pan: " + x + ", " + y);
         pan(x, y);
     }
 }
@@ -241,23 +322,75 @@ var line = d3.svg.line()
         });
 
 
+var colorDomain = [];
+var color = d3.scale.category10();   // set the colour scale 
+
 function updatePlot() {
+
+    var legendRectSize = 18;
+    var legendSpacing = 4;
+    color.domain(colorDomain);
 
     var country = linePlotG.selectAll(".country")
             .data(selectedCountries);
 
-    country.enter().append("g")
-            .attr("class", "country")
-            .attr("id", function (d) {
-                return d.id;
-            })
-            .append("path")
-            .attr("class", "line")
+    country.enter().append("path")
+            .attr("class", "country");
+
+    country.attr("id", function (d) {
+        return d.id;
+    })
             .attr("d", function (d) {
                 return line(d.values);
+            })
+            .style("stroke", function (d) {
+                return color(d.id);
+            })
+            /*
+            .on('mouseover', function (d) {
+                highlight(d.id);
             });
+*/
 
     country.exit().remove();
+
+    var legend = linePlotG.selectAll('.legend')
+            .data(selectedCountries);
+
+    var legendEnter = legend.enter()
+            .append('g')
+            .attr('class', 'legend')
+            .attr('transform', function (d, i) {
+                var height = legendRectSize + legendSpacing;
+                var offset = 0;//height * color.domain().length / 2;
+                var horz = legendRectSize;
+                var vert = i * height - offset;
+                return 'translate(' + horz + ',' + vert + ')';
+            });
+
+    legendEnter.append('rect');
+    legendEnter.append('text');
+
+    legend.select('rect')
+            .attr('width', legendRectSize)
+            .attr('height', legendRectSize)
+            .style("fill", function (d) {
+                return color(d.id);
+            })
+            .style("stroke", function (d) {
+                return color(d.id);
+            });
+
+    legend.select('text')
+            .attr('x', legendRectSize + legendSpacing)
+            .attr('y', legendRectSize - legendSpacing)
+            .text(function (d, i) {
+                return Datamap.prototype.worldTopo.objects.world.geometries.filter(function (country) {
+                    return country.id === selectedCountries[i].id;
+                })[0].properties.name;
+            });
+
+    legend.exit().remove();
 
 }
 
