@@ -149,7 +149,7 @@ function onCountryClick(datamap) {
 
         updateColorScale();
         updatePlot();
-
+        inputColors(parseInt($("#year").val()));
     });
 }
 
@@ -221,7 +221,15 @@ function inputColors(year) {
     var entries = [];
     for (var country in row) {
         if (row.hasOwnProperty(country) && country !== "Year") {
-            entries.push("\"" + country + "\":\"" + getColor(row[country]) + "\"");
+            var countryColor = "";
+            var colorDomainIndex = colorDomain.indexOf(country);
+            if (colorDomainIndex !== -1) {
+                countryColor = color.range()[colorDomainIndex];
+            }
+            else {
+                countryColor = getColor(row[country]);
+            }
+            entries.push("\"" + country + "\":\"" + countryColor + "\"");
         }
     }
     json += entries.join(',');
