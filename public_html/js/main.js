@@ -17,6 +17,16 @@ var scale = 1;
 var dragStartX = -1;
 var dragStartY = -1;
 
+var noDataFill = "#cccccc";
+
+var mapColorBins = [
+    {value: 20, color: "#edf8e9"},
+    {value: 40, color: "#bae4b3"},
+    {value: 60, color: "#74c476"},
+    {value: 80, color: "#31a354"},
+    {value: 100, color: "#006d2c"}
+];
+
 var waitForFinalEvent = (function () {
     var timers = {};
     return function (callback, ms, uniqueId) {
@@ -66,17 +76,17 @@ $(document).ready(function () {
 
     d3.selectAll('#main-view').on('mouseout', function () {
         if (d3.event.target.tagName === "path") {
-            var target=d3.select(d3.event.target).data()[0].id;
-            var oldAttributes=d3.select(d3.event.target).attr("data-previousAttributes");
-            
+            var target = d3.select(d3.event.target).data()[0].id;
+            var oldAttributes = d3.select(d3.event.target).attr("data-previousAttributes");
+
             d3.select(d3.event.target).style(oldAttributes);
         }
     });
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
-            var target=d3.select(d3.event.target).data()[0].id;
+            var target = d3.select(d3.event.target).data()[0].id;
             //d3.select(d3.event.target).style("stroke","#00f")
-            d3.select(d3.event.target).style({"stroke-width":"3px", "stroke":"f00"});
+            d3.select(d3.event.target).style({"stroke-width": "3px", "stroke": "f00"});
         }
     });
 
@@ -91,6 +101,9 @@ function renderWorldMap(renderColors) {
     worldMap = new Datamap({
         element: document.getElementById("main-view"),
         projection: 'mercator',
+        fills: {
+            defaultFill: noDataFill
+        },
         done: onCountryClick
                 /*
                  geographyConfig: {
@@ -201,11 +214,18 @@ function selectedIndex(clickedCountryId) {
 }
 
 function getColor(value) {
-    var val = value / 100;
-
-    var r = Math.floor(val * 255);
-    var rHex = ("0" + r.toString(16)).substr(-2);
-    return "#" + rHex + "0000";
+    if (value === "") {
+        return noDataFill;
+    }
+    var index = 0;
+    var currentBin = mapColorBins[index];
+    var returnColor = currentBin.color;
+    while (currentBin.value <= value) {
+        index++;
+        currentBin = mapColorBins[index];
+        returnColor = currentBin.color;
+    }
+    return returnColor;
 }
 
 function inputColors(year) {
@@ -225,8 +245,7 @@ function inputColors(year) {
             var colorDomainIndex = colorDomain.indexOf(country);
             if (colorDomainIndex !== -1) {
                 countryColor = color.range()[colorDomainIndex];
-            }
-            else {
+            } else {
                 countryColor = getColor(row[country]);
             }
             entries.push("\"" + country + "\":\"" + countryColor + "\"");
@@ -354,11 +373,11 @@ function updatePlot() {
             .style("stroke", function (d) {
                 return color(d.id);
             })
-            /*
-            .on('mouseover', function (d) {
-                highlight(d.id);
-            });
-*/
+    /*
+     .on('mouseover', function (d) {
+     highlight(d.id);
+     });
+     */
 
     country.exit().remove();
 
