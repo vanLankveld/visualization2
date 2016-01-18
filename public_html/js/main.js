@@ -74,6 +74,7 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
+    // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
             var target = d3.select(d3.event.target).data()[0].id;
@@ -99,22 +100,30 @@ $(document).ready(function () {
 });
 
 function addHighlight(id) {
+    // Set highlighted Country
     highlightedCountry = id;
-    d3.select(".datamaps-subunit." + id).style("fill", "#0f0");
-    d3.select("#" + id).style("stroke", '#0f0');
 
+    // Highlight dataMap
+    d3.select(".datamaps-subunit." + id).style("stroke-width", "5px");
+
+    // Highlight LinePlot
+    d3.select("#" + id).style("stroke-width", "5px");
 }
 
 function removeHighlight(id) {
+
     if (highlightedCountry != null) {
+        // unSet dataMap highlight
         var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
         d3.select(".datamaps-subunit." + highlightedCountry).style(oldAttributes);
+        d3.select(".datamaps-subunit." + id).style("stroke-width", "1px");
 
-        d3.select("#" + highlightedCountry).style("stroke", color(highlightedCountry));
+        // unSet LinePlot highlight
+        d3.select("#" + highlightedCountry).style("stroke-width", "2px");
 
+        // unSet global variable
         highlightedCountry = null;
     }
-
 
 }
 
@@ -131,9 +140,15 @@ function renderWorldMap(renderColors) {
         fills: {
             defaultFill: noDataFill
         },
-        done: onCountryClick
+        done: onCountryClick,
+        geographyConfig: {
+            highlightOnHover: false/*,
+            highlightFillColor: 'rgba(0,0,0,0.1)',
+            highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
+            highlightBorderWidth: 3,
+            highlightBorderOpacity: 0.2*/
+        }
     });
-
     if (renderColors) {
         inputColors($("#slider").slider("value"));
     }
@@ -374,11 +389,13 @@ function updatePlot() {
             .style("stroke", function (d) {
                 return color(d.id);
             })
-    /*
-     .on('mouseover', function (d) {
-     highlight(d.id);
-     });
-     */
+            .on('mouseover', function (d) {
+                addHighlight(d.id);
+            })
+            .on('mouseleave', function (d) {
+                removeHighlight(d.id);
+            });
+
 
     country.exit().remove();
 
