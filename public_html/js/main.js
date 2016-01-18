@@ -151,10 +151,10 @@ function renderWorldMap(renderColors) {
         done: onCountryClick,
         geographyConfig: {
             highlightOnHover: false/*,
-            highlightFillColor: 'rgba(0,0,0,0.1)',
-            highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
-            highlightBorderWidth: 3,
-            highlightBorderOpacity: 0.2*/
+             highlightFillColor: 'rgba(0,0,0,0.1)',
+             highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
+             highlightBorderWidth: 3,
+             highlightBorderOpacity: 0.2*/
         }
     });
     if (renderColors) {
@@ -184,9 +184,28 @@ function onCountryClick(datamap) {
             selectedCountries.push(clickedCountry);
         }
 
-        updateColorScale();
-        updatePlot();
+        var barChart = d3.select("#barChart");
+        if (selectedCountries.length > 0 && barChart.style("display") === "block") {
+            $("linePlot").show();
+            $("diffLinePlot").show();
+            $("#barChart").hide();
+        } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
+            $("linePlot").hide();
+            $("diffLinePlot").hide();
+            $("#barChart").show();
+        }
+
+        if (selectedCountries.length > 0) {
+            // LinePlot mode
+            updateColorScale();
+            updatePlot();
+        } else {
+            // BarChart mode
+
+        }
+
         inputColors(parseInt($("#year").val()));
+
     });
 }
 
@@ -409,6 +428,8 @@ var colorDomain = [];
 var color = d3.scale.category10();   // set the colour scale 
 
 function updatePlot() {
+    xAxisG.call(xAxis);
+    yAxisG.call(yAxis);
 
     var legendRectSize = 18;
     var legendSpacing = 4;
@@ -484,8 +505,7 @@ function dataInit(data) {
         return d["Year"];
     }));
     yScale.domain([0, 100]);
-    xAxisG.call(xAxis);
-    yAxisG.call(yAxis);
+
 
     allCountries = d3.keys(data[0]).filter(function (key) {
         return key !== "Year";
