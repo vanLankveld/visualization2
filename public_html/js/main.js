@@ -17,7 +17,10 @@ var scale = 1;
 var dragStartX = -1;
 var dragStartY = -1;
 
-var noDataFill = "#cccccc";
+var noDataFill = {
+    selection: "#bbbbbb",
+    noData: "#dddddd"
+};
 
 var mapColorBins = [
     {value: 20, color: "#edf8e9"},
@@ -108,7 +111,9 @@ function addHighlight(id) {
 function removeHighlight(id) {
     if (highlightedCountry != null) {
         var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
+
         d3.select(".datamaps-subunit." + highlightedCountry).style(oldAttributes);
+        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry))
 
         d3.select("#" + highlightedCountry).style("stroke", color(highlightedCountry));
 
@@ -129,7 +134,7 @@ function renderWorldMap(renderColors) {
         element: document.getElementById("main-view"),
         projection: 'mercator',
         fills: {
-            defaultFill: noDataFill
+            defaultFill: noDataFill.noData
         },
         done: onCountryClick
     });
@@ -196,7 +201,7 @@ function updateColorScale() {
         var lastColor = selectedCountries.filter(function (country) {
             return country.id === colorDomain[colorDomain.length - 1];
         });
-        if (lastColor.length !== 0) {
+        if (lastColor.length !== 0 || colorDomain.length === 0) {
             cleaning = false;
         } else {
             colorDomain.splice(colorDomain.length - 1, 1);
@@ -216,8 +221,11 @@ function selectedIndex(clickedCountryId) {
 
 function getColor(value) {
     if (value === "") {
-        return noDataFill;
+        return noDataFill.noData;
+    } else if (selectedCountries.length > 0) {
+        return noDataFill.selection;
     }
+
     var index = 0;
     var currentBin = mapColorBins[index];
     var returnColor = currentBin.color;
@@ -227,6 +235,34 @@ function getColor(value) {
         returnColor = currentBin.color;
     }
     return returnColor;
+}
+
+function selectedCountryIndex(country) {
+    for (var i = 0; i < selectedCountries.length; i++) {
+        var selectedCountry = selectedCountries[i];
+        if (selectedCountry.id.toLowerCase() === country.toLowerCase()) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function getSingleCountryColor(country) {
+    var year = parseInt($("#year").val());
+    for (var row in csv) {
+        if (csv[row]["Year"] === year.toString()) {
+            index = row;
+        }
+    }
+    var row = csv[index];
+
+    var selectedIndex = selectedCountryIndex(country);
+
+    if (selectedIndex !== -1) {
+        return color(country);
+    }
+    return getColor(row[country]);
+
 }
 
 function inputColors(year) {
@@ -243,9 +279,10 @@ function inputColors(year) {
     for (var country in row) {
         if (row.hasOwnProperty(country) && country !== "Year") {
             var countryColor = "";
-            var colorDomainIndex = colorDomain.indexOf(country);
-            if (colorDomainIndex !== -1) {
-                countryColor = color.range()[colorDomainIndex];
+
+            var selectedIndex = selectedCountryIndex(country);
+            if (selectedIndex !== -1) {
+                countryColor = color(country);
             } else {
                 countryColor = getColor(row[country]);
             }
