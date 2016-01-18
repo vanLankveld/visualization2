@@ -184,7 +184,7 @@ function removeHighlight(id) {
 
         d3.select(".datamaps-subunit." + id).style("stroke-width", "1px");
 
-        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry.parseInt($("#slider").slider("value"))));
+        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value"))));
 
 
         // unSet LinePlot highlight
