@@ -1,14 +1,10 @@
-var INTERACTION_SELECT = "select";
-var INTERACTION_ZOOMIN = "zoom-in";
-var INTERACTION_ZOOMOUT = "zoom-out";
-var INTERACTION_PAN = "pan";
+var MODE_DEFAULT = "default";
+var MODE_DIFF = "diff";
 
 var mainView;
 var worldMap = null;
 var csv;
 var afterResizeId = 0;
-
-var interactionMode = INTERACTION_SELECT;
 
 var translatedX = 0;
 var translatedY = 0;
@@ -17,17 +13,27 @@ var scale = 1;
 var dragStartX = -1;
 var dragStartY = -1;
 
+var mode = MODE_DEFAULT;
+
 var noDataFill = {
     selection: "#bbbbbb",
     noData: "#dddddd"
 };
 
 var mapColorBins = [
-    {value: 20, color: "#edf8e9"},
-    {value: 40, color: "#bae4b3"},
-    {value: 60, color: "#74c476"},
-    {value: 80, color: "#31a354"},
-    {value: 100, color: "#006d2c"}
+    {value: 20, color: "#eff3ff"},
+    {value: 40, color: "#bdd7e7"},
+    {value: 60, color: "#6baed6"},
+    {value: 80, color: "#3182bd"},
+    {value: 100, color: "#08519c"}
+];
+
+var mapDiffColorBins = [
+    {value: -100, color: "#fcae91"},
+    {value: 0, color: "#edf8e9"},
+    {value: 20, color: "#bae4b3"},
+    {value: 40, color: "#74c476"},
+    {value: 60, color: "#238b45"}
 ];
 
 var waitForFinalEvent = (function () {
@@ -51,22 +57,26 @@ $(document).ready(function () {
     mainView = $('#main-view');
 
     // Create slider
-    $("#slider").slider({
-        value: 2000,
-        min: 1990,
-        max: 2011,
-        step: 1,
-        slide: function (event, ui) {
-            $("#year").val(ui.value);
-            inputColors(ui.value);
-        }
-    });
-    // Initialize value
-    $("#year").val($("#slider").slider("value"));
+    setSlider();
+
     $.get('connectivity.csv', function (data) {
         var fileContents = data;
         csv = d3.csv.parse(fileContents);
         renderWorldMap(true);
+    });
+
+    $("#divMode").buttonset();
+
+    $("#divMode input").change(function () {
+        mode = $(this).val();
+        setSlider();
+        if (mode === MODE_DEFAULT) {
+            inputColors($("#slider").slider("value"));
+        } else if (mode === MODE_DIFF) {
+            var yearStart = $("#slider").slider("values", 0);
+            var yearEnd = $("#slider").slider("values", 1);
+            inputColors(yearStart, yearEnd);
+        }
     });
 
     $(window).resize(function () {
@@ -102,6 +112,57 @@ $(document).ready(function () {
 
 });
 
+function setSlider() {
+    var value = $('#year').val();
+    if (value === "") {
+        value = 2000;
+    }
+    $("#slider").remove();
+    var slider = $(document.createElement("div"));
+    slider.attr("id", "slider");
+    $("#divSliderContainer").append(slider);
+    $("#slider").slider({
+        range: false,
+        value: value,
+        min: 1990,
+        max: 2011,
+        step: 1,
+        slide: function (event, ui) {
+            if (mode === MODE_DEFAULT) {
+                $("#year").val(ui.value);
+            } else if (mode === MODE_DIFF) {
+                $("#year").val(ui.values[0] + " to " + ui.values[1]);
+            }
+            if (mode === MODE_DEFAULT) {
+                inputColors(ui.value);
+            } else if (mode === MODE_DIFF) {
+                inputColors(ui.values[0], ui.values[1]);
+            }
+        }
+    });
+
+    if (mode === MODE_DIFF) {
+
+        var value1 = parseInt(value);
+        var value2 = value1 + 1;
+        if (value2 > $("#slider").slider("option", "max")) {
+            value2 = value1 - 1;
+        }
+
+        $("#slider").slider({
+            range: true,
+            values: [value1, value2]
+        });
+        $("#year").val($("#slider").slider("values", 0) + " to " + $("#slider").slider("values", 1));
+    }
+    else if (mode === MODE_DEFAULT) {
+        $("#year").val($("#slider").slider("value"));
+    }
+
+    // Initialize value
+    $("#year").val($("#slider").slider("value"));
+}
+
 function addHighlight(id) {
     // Set highlighted Country
     highlightedCountry = id;
@@ -123,7 +184,7 @@ function removeHighlight(id) {
 
         d3.select(".datamaps-subunit." + id).style("stroke-width", "1px");
 
-        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry))
+        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry.parseInt($("#slider").slider("value"))));
 
 
         // unSet LinePlot highlight
@@ -151,10 +212,10 @@ function renderWorldMap(renderColors) {
         done: onCountryClick,
         geographyConfig: {
             highlightOnHover: false/*,
-            highlightFillColor: 'rgba(0,0,0,0.1)',
-            highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
-            highlightBorderWidth: 3,
-            highlightBorderOpacity: 0.2*/
+             highlightFillColor: 'rgba(0,0,0,0.1)',
+             highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
+             highlightBorderWidth: 3,
+             highlightBorderOpacity: 0.2*/
         }
     });
     if (renderColors) {
@@ -186,7 +247,7 @@ function onCountryClick(datamap) {
 
         updateColorScale();
         updatePlot();
-        inputColors(parseInt($("#year").val()));
+        inputColors(parseInt($("#slider").slider("value")));
     });
 }
 
@@ -237,20 +298,34 @@ function selectedIndex(clickedCountryId) {
     return -1;
 }
 
-function getColor(value) {
+function getColor(value, mode) {
+    if (mode === undefined) {
+        mode = MODE_DEFAULT;
+    }
+
     if (value === "") {
         return noDataFill.noData;
     } else if (selectedCountries.length > 0) {
         return noDataFill.selection;
     }
 
+    var bins;
+    if (mode === MODE_DEFAULT) {
+        bins = mapColorBins;
+    } else if (mode === MODE_DIFF) {
+        bins = mapDiffColorBins;
+    }
+
     var index = 0;
-    var currentBin = mapColorBins[index];
+    var currentBin = bins[index];
     var returnColor = currentBin.color;
     while (currentBin.value <= value) {
-        index++;
-        currentBin = mapColorBins[index];
+        if (currentBin === undefined) {
+            break;
+        }
         returnColor = currentBin.color;
+        index++;
+        currentBin = bins[index];
     }
     return returnColor;
 }
@@ -265,8 +340,7 @@ function selectedCountryIndex(country) {
     return -1;
 }
 
-function getSingleCountryColor(country) {
-    var year = parseInt($("#year").val());
+function getSingleCountryColor(country, year) {
     for (var row in csv) {
         if (csv[row]["Year"] === year.toString()) {
             index = row;
@@ -280,10 +354,78 @@ function getSingleCountryColor(country) {
         return color(country);
     }
     return getColor(row[country]);
-
 }
 
-function inputColors(year) {
+function getSingleCountryDiffColor(country, yearStart, yearEnd) {
+    var dValue = getDiffForCountry(country, yearStart, yearEnd);
+    return getColor(dValue, "diff");
+}
+
+function getDiffForCountry(country, yearStart, yearEnd, asDerivative) {
+    var valueStart = "";
+    var valueEnd = "";
+
+    var dYear = 0;
+    var inRange;
+
+    for (var row in csv) {
+        if (csv[row]["Year"] === yearStart.toString()) {
+            inRange = true;
+            valueStart = csv[row][country];
+        } else if (csv[row]["Year"] === yearEnd.toString()) {
+            inRange = false;
+            valueEnd = csv[row][country];
+        }
+        if (inRange) {
+            dYear++;
+        }
+    }
+
+    if (valueStart === "" || valueEnd === "") {
+        return "";
+    }
+
+    var dValue = (valueEnd - valueStart);
+
+    if (asDerivative) {
+        return dValue / dYear;
+    }
+
+    return dValue;
+}
+
+function inputColors(yearStart, yearEnd) {
+
+    if (yearEnd !== undefined) {
+        var countryList = [];
+
+        for (var key in csv[0]) {
+            if (key !== "Year") {
+                countryList.push(key);
+            }
+        }
+
+        var json = "{";
+        var entries = [];
+        for (var i in countryList) {
+            var country = countryList[parseInt(i)];
+            var countryColor = "";
+
+            var selectedIndex = selectedCountryIndex(country);
+            if (selectedIndex !== -1) {
+                countryColor = color(country);
+            } else {
+                countryColor = getSingleCountryDiffColor(country, yearStart, yearEnd);
+            }
+            entries.push("\"" + country + "\":\"" + countryColor + "\"");
+        }
+        json += entries.join(',');
+        json += "}";
+
+        worldMap.updateChoropleth(JSON.parse(json));
+        return;
+    }
+    var year = yearStart;
     var index = 0;
     for (var row in csv) {
         if (csv[row]["Year"] === year.toString()) {
@@ -314,54 +456,12 @@ function inputColors(year) {
     worldMap.updateChoropleth(JSON.parse(json));
 }
 
-function changeCursor() {
-    var cursor = 'default';
-    switch (interactionMode) {
-        case INTERACTION_ZOOMIN:
-            cursor = 'zoom-in';
-            break;
-        case INTERACTION_ZOOMOUT:
-            cursor = 'zoom-out';
-            break;
-        case INTERACTION_PAN:
-            cursor = 'all-scroll';
-            break;
-    }
-    mainView.css('cursor', cursor);
-}
-
 function setMouseEvents() {
     var zoom = d3.behavior.zoom()
             .scaleExtent([1, 10])
             .on("zoom", onZoom);
 
     worldMap.svg.call(zoom);
-}
-
-function onDragStart(d) {
-    var coordinates = [0, 0];
-    coordinates = d3.mouse(this);
-    dragStartX = coordinates[0];
-    dragStartY = coordinates[1];
-    //console.log("dragStart: " + dragStartX + ", " + dragStartY);
-}
-
-function onDragEnd() {
-    dragStartX = -1;
-    dragStartY = -1;
-    //console.log("dragEnd");
-}
-
-function onDrag() {
-    var coordinates = [0, 0];
-    coordinates = d3.mouse(this);
-    var x = coordinates[0];
-    var y = coordinates[1];
-
-    if (interactionMode === INTERACTION_PAN) {
-        //console.log("pan: " + x + ", " + y);
-        pan(x, y);
-    }
 }
 
 function onZoom(d) {
