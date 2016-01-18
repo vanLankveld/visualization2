@@ -32,7 +32,7 @@ var waitForFinalEvent = (function () {
 
 var allCountries;
 var selectedCountries = [];
-var highlightedCountry;
+var highlightedCountry = null;
 
 $(document).ready(function () {
     mainView = $('#main-view');
@@ -64,23 +64,48 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
-    d3.selectAll('#main-view').on('mouseout', function () {
-        if (d3.event.target.tagName === "path") {
-            var target=d3.select(d3.event.target).data()[0].id;
-            var oldAttributes=d3.select(d3.event.target).attr("data-previousAttributes");
-            
-            d3.select(d3.event.target).style(oldAttributes);
-        }
-    });
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
-            var target=d3.select(d3.event.target).data()[0].id;
-            //d3.select(d3.event.target).style("stroke","#00f")
-            d3.select(d3.event.target).style({"stroke-width":"3px", "stroke":"f00"});
+            var target = d3.select(d3.event.target).data()[0].id;
+            addHighlight(target);
+            //d3.select(d3.event.target).style({"stroke-width": "3px", "stroke": "f00"});
+        }
+    });
+
+    d3.selectAll('#main-view').on('mouseout', function () {
+        if (d3.event.target.tagName === "path") {
+            var target = d3.select(d3.event.target).data()[0].id;
+            removeHighlight(target);
+            //console.log(d3.select(".datamaps-subunit." + target).data()[0]);
+            /*
+             var oldAttributes = d3.select(d3.event.target).attr("data-previousAttributes");
+             d3.select(d3.event.target).style(oldAttributes);
+             */
         }
     });
 
 });
+
+function addHighlight(id) {
+    highlightedCountry = id;
+    d3.select(".datamaps-subunit." + id).style("fill", "#0f0");
+    d3.select("#" + id).style("stroke", '#0f0');
+
+}
+
+function removeHighlight(id) {
+    if (highlightedCountry != null) {
+        var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
+        d3.select(".datamaps-subunit." + highlightedCountry).style(oldAttributes);
+
+        d3.select("#" + highlightedCountry).style("stroke", color(highlightedCountry));
+
+        highlightedCountry = null;
+    }
+
+
+}
+
 function renderWorldMap(renderColors) {
 
     if (worldMap) {
@@ -92,14 +117,6 @@ function renderWorldMap(renderColors) {
         element: document.getElementById("main-view"),
         projection: 'mercator',
         done: onCountryClick
-                /*
-                 geographyConfig: {
-                 popupTemplate: function (geography, data) {
-                 highlight(geography.id);
-                 return '<div class="hoverinfo">' + geography.properties.name + '<\div>';
-                 }
-                 }
-                 */
     });
 
     if (renderColors) {
@@ -107,24 +124,6 @@ function renderWorldMap(renderColors) {
     }
 
     setMouseEvents();
-}
-
-function highlight(id) {
-    highlightedCountry = id;
-    d3.select(".datamaps-subunit." + id).style("fill", "#0f0");
-    console.log(d3.select(".datamaps-subunit." + id)[0][0].__data__);
-    d3.select("#" + id).style("stroke", '#0f0');
-    /*
-     var hoverinfo = d3.select(".datamaps-hoverover");
-     console.log(hoverinfo.style("display"));
-     if (hoverinfo.style("display") === "none") {
-     // Called from a plot, not hovering a country
-     
-     } else {
-     updatePlot();
-     }
-     
-     */
 }
 
 function onCountryClick(datamap) {
@@ -346,11 +345,11 @@ function updatePlot() {
             .style("stroke", function (d) {
                 return color(d.id);
             })
-            /*
-            .on('mouseover', function (d) {
-                highlight(d.id);
-            });
-*/
+    /*
+     .on('mouseover', function (d) {
+     highlight(d.id);
+     });
+     */
 
     country.exit().remove();
 
