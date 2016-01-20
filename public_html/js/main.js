@@ -28,6 +28,10 @@ var mapColorBins = [
     {value: 100, color: "#08519c"}
 ];
 
+var colorBins = d3.scale.threshold()
+        .domain([20, 40, 60, 80, 100])
+        .range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c", "#000000"]);
+
 var mapDiffColorBins = [
     {value: -100, color: "#fcae91"},
     {value: 0, color: "#edf8e9"},
@@ -35,6 +39,18 @@ var mapDiffColorBins = [
     {value: 40, color: "#74c476"},
     {value: 60, color: "#238b45"}
 ];
+
+// Create the measurement node for scroll-bar measurement
+var scrollDiv = document.createElement("div");
+scrollDiv.className = "scrollbar-measure";
+document.body.appendChild(scrollDiv);
+
+// Get the scrollbar width
+var scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
+//console.warn(scrollbarWidth); // Mac:  15
+
+// Delete the DIV 
+document.body.removeChild(scrollDiv);
 
 var waitForFinalEvent = (function () {
     var timers = {};
@@ -49,7 +65,7 @@ var waitForFinalEvent = (function () {
     };
 })();
 
-var allCountries;
+var allCountries = null;
 var selectedCountries = [];
 var highlightedCountry = null;
 
@@ -123,9 +139,9 @@ function setSlider() {
     $("#divSliderContainer").append(slider);
     $("#slider").slider({
         range: false,
-        value: value,
         min: 1990,
         max: 2011,
+        value: value,
         step: 1,
         slide: function (event, ui) {
             if (mode === MODE_DEFAULT) {
@@ -135,6 +151,7 @@ function setSlider() {
             }
             if (mode === MODE_DEFAULT) {
                 inputColors(ui.value);
+                updateBarChart(ui.value);
             } else if (mode === MODE_DIFF) {
                 inputColors(ui.values[0], ui.values[1]);
             }
@@ -169,29 +186,32 @@ function addHighlight(id) {
 
     // Highlight dataMap
     d3.select(".datamaps-subunit." + id).style("stroke-width", "5px");
+    d3.select(".datamaps-subunit." + id).style("stroke", "#000");
 
     // Highlight LinePlot
-    d3.select("#" + id).style("stroke-width", "5px");
+    d3.select("#" + highlightedCountry).classed("highlighted", true);
 }
 
 function removeHighlight(id) {
 
     if (highlightedCountry != null) {
+
+        // unSet LinePlot highlight
+        d3.select("#" + highlightedCountry).classed("highlighted", false);
+
         // unSet dataMap highlight
         var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
 
         d3.select(".datamaps-subunit." + highlightedCountry).style(oldAttributes);
 
-        d3.select(".datamaps-subunit." + id).style("stroke-width", "1px");
+        d3.select(".datamaps-subunit." + highlightedCountry).style("stroke-width", "1px");
+        d3.select(".datamaps-subunit." + highlightedCountry).style("stroke", "#fff");
 
-        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry.parseInt($("#slider").slider("value"))));
-
-
-        // unSet LinePlot highlight
-        d3.select("#" + highlightedCountry).style("stroke-width", "2px");
+        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value"))));
 
         // unSet global variable
         highlightedCountry = null;
+
     }
 
 }
@@ -248,13 +268,16 @@ function onCountryClick(datamap) {
 
         var barChart = d3.select("#barChart");
         if (selectedCountries.length > 0 && barChart.style("display") === "block") {
-            $("linePlot").show();
-            $("diffLinePlot").show();
+            $("#linePlot").show();
+            $("#diffLinePlot").show();
             $("#barChart").hide();
+            $('#barChartXAxis').hide();
         } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
-            $("linePlot").hide();
-            $("diffLinePlot").hide();
+            $("#linePlot").hide();
+            $("#diffLinePlot").hide();
             $("#barChart").show();
+            $('#barChartXAxis').show();
+            updateBarChart();
         }
 
         if (selectedCountries.length > 0) {
@@ -489,48 +512,124 @@ function onZoom(d) {
             .attr("transform", "translate(" + (d3.event.translate) + ")scale(" + d3.event.scale + ")");
 }
 
-var outerWidth = $('#linePlot').width();
-var outerHeight = $('#linePlot').height();
-var margin = {left: 50, top: 50, right: 50, bottom: 50};
-var innerWidth = outerWidth - margin.left - margin.right;
-var innerHeight = outerHeight - margin.top - margin.bottom;
+// Line Plot
+var linePlotOuterWIdth = $('#linePlot').width();
+var linePlotOuterHeight = $('#linePlot').height();
+var linePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
+var linePlotInnerWidth = linePlotOuterWIdth - linePlotMargin.left - linePlotMargin.right;
+var linePlotInnerHeight = linePlotOuterHeight - linePlotMargin.top - linePlotMargin.bottom;
 
 var outerLinePlotSvg = d3.select('#linePlot').append('svg')
-        .attr('width', outerWidth)
-        .attr('height', outerHeight);
+        .attr('width', linePlotOuterWIdth)
+        .attr('height', linePlotOuterHeight);
 var linePlotG = outerLinePlotSvg.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .attr("transform", "translate(" + linePlotMargin.left + "," + linePlotMargin.top + ")");
 
-var xAxisG = linePlotG.append("g")
-        .attr("transform", "translate(0," + innerHeight + ")");
-var yAxisG = linePlotG.append("g");
+var linePlotXAxisG = linePlotG.append("g")
+        .attr("transform", "translate(0," + linePlotInnerHeight + ")");
+var linePlotYAxisG = linePlotG.append("g");
 
-var xScale = d3.scale.linear().range([0, innerWidth]);
-var yScale = d3.scale.linear().range([innerHeight, 0]);
+var linePlotXScale = d3.scale.linear().range([0, linePlotInnerWidth]);
+var linePlotYScale = d3.scale.linear().range([linePlotInnerHeight, 0]);
 
-var xAxis = d3.svg.axis().scale(xScale).orient("bottom")
+var linePlotXAxis = d3.svg.axis().scale(linePlotXScale).orient("bottom")
         .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
         .outerTickSize(0);  // Turn off the marks at the end of the axis.
-var yAxis = d3.svg.axis().scale(yScale).orient("left")
+var linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
         .ticks(5)                   // Use approximately 5 ticks marks.
         .outerTickSize(0);          // Turn off the marks at the end of the axis.
 
 var line = d3.svg.line()
         //.interpolate("basis")
         .x(function (d) {
-            return xScale(d.Year);
+            return linePlotXScale(d.Year);
         })
         .y(function (d) {
-            return yScale(d.Connectivity);
+            return linePlotYScale(d.Connectivity);
         });
-
 
 var colorDomain = [];
 var color = d3.scale.category10();   // set the colour scale 
 
+// Bar chart
+var barChartMargin = {left: 100, top: 50, right: 50, bottom: 0};
+var barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
+var barChartOuterHeight = 4 * $('#barChart').height();
+var barChartInnerWidth = barChartOuterWidth - barChartMargin.left - barChartMargin.right;
+var barChartInnerHeight = barChartOuterHeight - barChartMargin.top - barChartMargin.bottom;
+
+var barChartYScale = d3.scale.ordinal()
+        .rangeBands([barChartInnerHeight, 0], 0.1);
+var barChartXScale = d3.scale.linear()
+        .range([0, barChartInnerWidth]);
+
+var barChartXAxis = d3.svg.axis()
+        .scale(barChartXScale)
+        .orient("bottom");
+var barChartYAxis = d3.svg.axis()
+        .scale(barChartYScale)
+        .orient("left");
+
+var outerBarChartSvg = d3.select('#barChart').append('svg')
+        .attr('width', barChartOuterWidth)
+        .attr('height', barChartOuterHeight);
+var barChartG = outerBarChartSvg.append("g")
+        .attr("transform", "translate(" + barChartMargin.left + "," + barChartMargin.top + ")");
+var barChartXAxisG = d3.select('#barChartXAxis').append('svg')
+        .attr('width', $('#barChartXAxis').width())
+        .attr('height', Math.floor($('#barChartXAxis').height()))
+        .append("g")
+        .attr("transform", "translate(" + barChartMargin.left + ",0)")
+        .attr("class", "x axis");
+var barChartYAxisG = barChartG.append("g")
+        .attr("class", "y axis");
+
+
+function updateBarChart(sliderYear) {
+    if (sliderYear === undefined) {
+        sliderYear = $('#slider').slider("value");
+    }
+
+    barChartXScale.domain([0, 100]);
+    barChartYScale.domain(allCountries.map(function (d) {
+        return d.id;
+    }));
+
+    barChartXAxisG.call(barChartXAxis);
+    barChartYAxisG.call(barChartYAxis);
+
+    var rects = barChartG.selectAll(".bar")
+            .data(allCountries);
+
+    rects.enter().append("rect")
+            .attr("class", "bar");
+
+    rects.attr("y", function (d) {
+        return barChartYScale(d.id);
+    })
+            .attr("height", barChartYScale.rangeBand())
+            .attr("id", function (d) {
+                return d.id;
+            })
+            .attr("x", 0)
+            .attr("width", function (d) {
+                return barChartXScale(getCurrentConnectivity(d, sliderYear));
+            })
+            .style("fill", function (d) {
+                return colorBins(getCurrentConnectivity(d, sliderYear));
+            })
+            .on('mouseover', function (d) {
+                addHighlight(d.id);
+            })
+            .on('mouseleave', function (d) {
+                removeHighlight(d.id);
+            });
+}
+
 function updatePlot() {
-    xAxisG.call(xAxis);
-    yAxisG.call(yAxis);
+
+    linePlotXAxisG.call(linePlotXAxis);
+    linePlotYAxisG.call(linePlotYAxis);
 
     var legendRectSize = 18;
     var legendSpacing = 4;
@@ -601,11 +700,21 @@ function updatePlot() {
 
 }
 
+function getCurrentConnectivity(d, sliderYear) {
+    if (sliderYear === undefined) {
+        sliderYear = $('#slider').slider("value");
+    }
+
+    return d.values.filter(function (data) {
+        return data.Year === sliderYear;
+    })[0].Connectivity;
+}
+
 function dataInit(data) {
-    xScale.domain(d3.extent(data, function (d) {
+    linePlotXScale.domain(d3.extent(data, function (d) {
         return d["Year"];
     }));
-    yScale.domain([0, 100]);
+    linePlotYScale.domain([0, 100]);
 
 
     allCountries = d3.keys(data[0]).filter(function (key) {
@@ -620,6 +729,53 @@ function dataInit(data) {
             })
         };
     });
+
+    allCountries.sort(function (a, b) {
+        return d3.descending(a.id, b.id);
+    });
+
+
+    // SORTING
+    d3.select("#sortCheck").on("change", change);
+
+    function change() {
+
+        // Copy-on-write since tweens are evaluated after a delay.
+        var y0 = barChartYScale.domain(allCountries.sort(this.checked
+                ? function (a, b) {
+                    return getCurrentConnectivity(a) - getCurrentConnectivity(b);
+                }
+        : function (a, b) {
+            return d3.descending(a.id, b.id);
+        })
+                .map(function (d) {
+                    return d.id;
+                }))
+                .copy();
+
+        barChartG.selectAll(".bar")
+                .sort(function (a, b) {
+                    return y0(b.id) - y0(a.id);
+                });
+
+        var transition = barChartG.transition().duration(100),
+                delay = function (d, i) {
+                    return i * 1;
+                };
+
+        transition.selectAll(".bar")
+                .delay(delay)
+                .attr("y", function (d) {
+                    return y0(d.id);
+                });
+
+        transition.select(".y.axis")
+                .call(barChartYAxis)
+                .selectAll("g")
+                .delay(delay);
+    }
+
+
 }
 
 function type(d) {
@@ -633,4 +789,20 @@ function type(d) {
     return d;
 }
 
-d3.csv('connectivity.csv', type, dataInit);
+queue()
+        .defer(d3.csv, 'connectivity.csv')
+        .await(uponLoad);
+
+function uponLoad(error, result) {
+    if (error) {
+        console.log("error: " + error);
+    } else {
+        result.forEach(type);
+        dataInit(result);
+        updateBarChart();
+    }
+
+}
+
+//d3.csv('connectivity.csv', type, dataInit);
+

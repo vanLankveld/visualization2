@@ -26,15 +26,27 @@
 }
 
 #linePlot{
-    width:100%;
-    height: 50%;
+    position: absolute;
+    top: 0;
+    bottom: 50%;
+    left: 0;
+    right: 0;
+    //width:100%;
+    //height: 50%;
+    display: none;
     margin: 10px;
     background: #fff;
 }
 
 #diffLinePlot{
-    width:100%;
-    height: 50%;
+    position: absolute;
+    top: 50%;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    //width:100%;
+    //height: 50%;
+    display: none;
     margin: 10px;
     background: #fff;
 }
@@ -42,11 +54,24 @@
 #barChart{
     position:absolute;
     top:0;
-    bottom:0;
+    bottom:5%;
     left:0;
     right:0;
     display:block;
-    background: #e1e1e1;
+    margin: 10px 10px 0px 10px;
+    background: #fff;
+    overflow-y: scroll;
+}
+
+#barChartXAxis{
+    position: absolute;
+    top:95%;
+    bottom:0;
+    left:0;
+    right:0;
+    margin: 0px 10px 10px 10px;
+    display:block;
+    background:#fff;
 }
 
 #main-view {
@@ -59,10 +84,10 @@
 
 #control-view {
     position: absolute;
+    top: 85%;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 15%;
     background: #e1e1e1;
 }
 
@@ -72,13 +97,31 @@
     margin: auto;
 }
 
-#slider{
+#divSliderContainer{
     width: 100%;
 }
-
 
 path {
     fill: none;
     stroke: black;
     stroke-width: 2px;
 }
+
+path.highlighted{
+    stroke-width:5px;
+}
+
+.bar.highlighted{
+    stroke-width:2px;
+    stroke: #000000;
+}
+
+/* way the hell off screen */
+.scrollbar-measure {
+	width: 100px;
+	height: 100px;
+	overflow: scroll;
+	position: absolute;
+	top: -9999px;
+}
+
