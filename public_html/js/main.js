@@ -113,8 +113,8 @@ $(document).ready(function () {
 });
 
 function setSlider() {
-    var value = $('#year').val();
-    if (value === "") {
+    var value = $("#slider").slider("values", 0);
+    if (isNaN(parseInt(value))) {
         value = 2000;
     }
     $("#slider").remove();
@@ -339,10 +339,7 @@ function getColor(value, mode) {
     var index = 0;
     var currentBin = bins[index];
     var returnColor = currentBin.color;
-    while (currentBin.value <= value) {
-        if (currentBin === undefined) {
-            break;
-        }
+    while (currentBin !== undefined && currentBin.value <= value) {
         returnColor = currentBin.color;
         index++;
         currentBin = bins[index];
