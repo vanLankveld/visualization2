@@ -72,6 +72,14 @@
     margin: auto;
 }
 
+.div-buttons {
+    display: inline-block;
+}
+
+.ui-widget {
+    font-size: 1em !important;
+}
+
 #slider{
     width: 100%;
 }

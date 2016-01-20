@@ -15,6 +15,8 @@ var dragStartY = -1;
 
 var mode = MODE_DEFAULT;
 
+var zoom;
+
 var noDataFill = {
     selection: "#bbbbbb",
     noData: "#dddddd"
@@ -65,19 +67,7 @@ $(document).ready(function () {
         renderWorldMap(true);
     });
 
-    $("#divMode").buttonset();
-
-    $("#divMode input").change(function () {
-        mode = $(this).val();
-        setSlider();
-        if (mode === MODE_DEFAULT) {
-            inputColors($("#slider").slider("value"));
-        } else if (mode === MODE_DIFF) {
-            var yearStart = $("#slider").slider("values", 0);
-            var yearEnd = $("#slider").slider("values", 1);
-            inputColors(yearStart, yearEnd);
-        }
-    });
+    setButtons();
 
     $(window).resize(function () {
         renderWorldMap(false);
@@ -111,6 +101,28 @@ $(document).ready(function () {
     });
 
 });
+
+function setButtons() {
+    $("#divMode").buttonset();
+
+    $("#divMode input").change(function () {
+        mode = $(this).val();
+        setSlider();
+        redrawColors();
+    });
+
+    $("#btResetView").button();
+    $("#btClearSelection").button();
+
+    $("#btResetView").click(function () {
+        resetView();
+    });
+
+    $("#btClearSelection").click(function () {
+        selectedCountries = [];
+        updateSelection();
+    });
+}
 
 function setSlider() {
     var value = $("#slider").slider("values", 0);
@@ -154,13 +166,22 @@ function setSlider() {
             values: [value1, value2]
         });
         $("#year").val($("#slider").slider("values", 0) + " to " + $("#slider").slider("values", 1));
-    }
-    else if (mode === MODE_DEFAULT) {
+    } else if (mode === MODE_DEFAULT) {
         $("#year").val($("#slider").slider("value"));
     }
 
     // Initialize value
     $("#year").val($("#slider").slider("value"));
+}
+
+function redrawColors() {
+    if (mode === MODE_DEFAULT) {
+        inputColors($("#slider").slider("value"));
+    } else if (mode === MODE_DIFF) {
+        var yearStart = $("#slider").slider("values", 0);
+        var yearEnd = $("#slider").slider("values", 1);
+        inputColors(yearStart, yearEnd);
+    }
 }
 
 function addHighlight(id) {
@@ -184,7 +205,14 @@ function removeHighlight(id) {
 
         d3.select(".datamaps-subunit." + id).style("stroke-width", "1px");
 
-        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value"))));
+        var oldColor;
+        if (mode === MODE_DEFAULT) {
+            oldColor = getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value")));
+        } else if (mode === MODE_DIFF) {
+            oldColor = getSingleCountryDiffColor(highlightedCountry, parseInt($("#slider").slider("value")));
+        }
+
+        d3.select(".datamaps-subunit." + highlightedCountry).style('fill', oldColor);
 
 
         // unSet LinePlot highlight
@@ -245,30 +273,33 @@ function onCountryClick(datamap) {
             selectedCountries.push(clickedCountry);
         }
 
-
-        var barChart = d3.select("#barChart");
-        if (selectedCountries.length > 0 && barChart.style("display") === "block") {
-            $("linePlot").show();
-            $("diffLinePlot").show();
-            $("#barChart").hide();
-        } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
-            $("linePlot").hide();
-            $("diffLinePlot").hide();
-            $("#barChart").show();
-        }
-
-        if (selectedCountries.length > 0) {
-            // LinePlot mode
-            updateColorScale();
-            updatePlot();
-        } else {
-            // BarChart mode
-
-        }
-
-        inputColors(parseInt($("#slider").slider("value")));
+        updateSelection();
 
     });
+}
+
+function updateSelection() {
+    var barChart = d3.select("#barChart");
+    if (selectedCountries.length > 0 && barChart.style("display") === "block") {
+        $("linePlot").show();
+        $("diffLinePlot").show();
+        $("#barChart").hide();
+    } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
+        $("linePlot").hide();
+        $("diffLinePlot").hide();
+        $("#barChart").show();
+    }
+
+    if (selectedCountries.length > 0) {
+        // LinePlot mode
+        updateColorScale();
+        updatePlot();
+    } else {
+        // BarChart mode
+
+    }
+
+    redrawColors();
 }
 
 function updateColorScale() {
@@ -474,7 +505,7 @@ function inputColors(yearStart, yearEnd) {
 }
 
 function setMouseEvents() {
-    var zoom = d3.behavior.zoom()
+    zoom = d3.behavior.zoom()
             .scaleExtent([1, 10])
             .on("zoom", onZoom);
 
@@ -484,6 +515,14 @@ function setMouseEvents() {
 function onZoom(d) {
     d3.select("#main-view svg g")
             .attr("transform", "translate(" + (d3.event.translate) + ")scale(" + d3.event.scale + ")");
+}
+
+function resetView() {
+    zoom.scale(1);
+    zoom.translate([0, 0]);
+    d3.select("#main-view svg g")
+            .transition()
+            .attr("transform", "translate(0)scale(1)");
 }
 
 var outerWidth = $('#linePlot').width();
