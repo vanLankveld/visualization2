@@ -51,14 +51,25 @@
     background: #fff;
 }
 
+#barChartTitle{
+    position: absolute;
+    top:0;
+    bottom:95%;
+    left:0;
+    right:0;
+    margin: 10px 10px 0px 10px;
+    display:block;
+    background:#fff;
+}
+
 #barChart{
     position:absolute;
-    top:0;
+    top:5%;
     bottom:5%;
     left:0;
     right:0;
     display:block;
-    margin: 10px 10px 0px 10px;
+    margin: 0px 10px 0px 10px;
     background: #fff;
     overflow-y: scroll;
 }
@@ -126,10 +137,10 @@ path.highlighted{
 
 /* way the hell off screen */
 .scrollbar-measure {
-	width: 100px;
-	height: 100px;
-	overflow: scroll;
-	position: absolute;
-	top: -9999px;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    position: absolute;
+    top: -9999px;
 }
 

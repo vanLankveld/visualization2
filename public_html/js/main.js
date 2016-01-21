@@ -303,11 +303,13 @@ function updateSelection() {
     if (selectedCountries.length > 0 && barChart.style("display") === "block") {
         $("#linePlot").show();
         $("#diffLinePlot").show();
+        $('#barChartTitle').hide();
         $("#barChart").hide();
         $('#barChartXAxis').hide();
     } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
         $("#linePlot").hide();
         $("#diffLinePlot").hide();
+        $('#barChartTitle').show();
         $("#barChart").show();
         $('#barChartXAxis').show();
     }
@@ -583,6 +585,12 @@ var line = d3.svg.line()
             return linePlotYScale(d.Connectivity);
         });
 
+var legendSvg = d3.select('#dialog').append('svg')
+        .attr('width', 250)
+        .attr('height', $('#dialog').height());
+var legendG = legendSvg
+        .append('g');
+
 var colorDomain = [];
 var color = d3.scale.category10();   // set the colour scale 
 
@@ -695,8 +703,12 @@ function updatePlot() {
 
     country.exit().remove();
 
-    var legend = linePlotG.selectAll('.legend')
+
+    var legend = legendG.selectAll('.legend')
             .data(selectedCountries);
+
+    //var legend = linePlotG.selectAll('.legend')
+    //        .data(selectedCountries);
 
     var legendEnter = legend.enter()
             .append('g')
