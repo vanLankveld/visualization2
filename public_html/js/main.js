@@ -93,7 +93,7 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
-    setLegend()
+    setLegend();
 
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
@@ -125,14 +125,14 @@ function setButtons() {
     $("#btResetView").button();
     $("#btClearSelection").button();
     $("#cbShowLegend").button();
-    
-    $("#cbShowLegend").change(function() {
-       var checked = $("#cbShowLegend").prop("checked");
+
+    $("#cbShowLegend").change(function () {
+        var checked = $("#cbShowLegend").prop("checked");
         if (checked) {
-            $("#divLegend").dialog( "open" );
+            $("#divLegend").dialog("open");
         }
         else {
-            $("#divLegend").dialog( "close" );
+            $("#divLegend").dialog("close");
         }
     });
 
@@ -200,13 +200,13 @@ function setSlider() {
 
 function setLegend() {
     var show = $('#cbShowLegend').prop('checked');
-    
+
     $("#divLegend").dialog({
         autoOpen: show,
-        position: { my: "left bottom", at: "left bottom", of: mainView },
-        close: function() {
-            $("#cbShowLegend").prop( "checked", false );
-            $("#cbShowLegend").button( "refresh" );
+        position: {my: "left bottom", at: "left bottom", of: mainView},
+        close: function () {
+            $("#cbShowLegend").prop("checked", false);
+            $("#cbShowLegend").button("refresh");
         }
     });
 }
@@ -608,9 +608,9 @@ var line = d3.svg.line()
             return linePlotYScale(d.Connectivity);
         });
 
-var legendSvg = d3.select('#dialog').append('svg')
+var legendSvg = d3.select('#divLegend').append('svg')
         .attr('width', 250)
-        .attr('height', $('#dialog').height());
+        .attr('height', $('#divLegend').height());
 var legendG = legendSvg
         .append('g');
 
@@ -697,8 +697,7 @@ function updatePlot() {
     linePlotXAxisG.call(linePlotXAxis);
     linePlotYAxisG.call(linePlotYAxis);
 
-    var legendRectSize = 18;
-    var legendSpacing = 4;
+
     color.domain(colorDomain);
 
     var country = linePlotG.selectAll(".country")
@@ -727,11 +726,16 @@ function updatePlot() {
     country.exit().remove();
 
 
+    updateLegend();
+
+}
+
+function updateLegend() {
+    var legendRectSize = 18;
+    var legendSpacing = 4;
+
     var legend = legendG.selectAll('.legend')
             .data(selectedCountries);
-
-    //var legend = linePlotG.selectAll('.legend')
-    //        .data(selectedCountries);
 
     var legendEnter = legend.enter()
             .append('g')
@@ -767,7 +771,6 @@ function updatePlot() {
             });
 
     legend.exit().remove();
-
 }
 
 function getCurrentConnectivity(d, sliderYear) {
