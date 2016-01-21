@@ -301,13 +301,15 @@ function onCountryClick(datamap) {
 function updateSelection() {
     var barChart = d3.select("#barChart");
     if (selectedCountries.length > 0 && barChart.style("display") === "block") {
-        $("linePlot").show();
-        $("diffLinePlot").show();
+        $("#linePlot").show();
+        $("#diffLinePlot").show();
         $("#barChart").hide();
+        $('#barChartXAxis').hide();
     } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
-        $("linePlot").hide();
-        $("diffLinePlot").hide();
+        $("#linePlot").hide();
+        $("#diffLinePlot").hide();
         $("#barChart").show();
+        $('#barChartXAxis').show();
     }
 
     if (selectedCountries.length > 0) {
