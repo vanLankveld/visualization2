@@ -15,41 +15,44 @@
         <script type="text/javascript" src="js/lib/datamaps.world.min.js"></script>
     </head>
     <body>
-        <div id="left">
-            <div id="main-view">
-                <div id="divLegend" title="Legend">
+        <h1>Internet Connectivity: an interactive visualization</h1>
+        <div id="wrapper">
+            <div id="left">
+                <div id="main-view">
+                    <div id="divLegend" title="Legend">
+
+                    </div>
+                    <span id="year" class="year-overlay"></span>
+                </div>
+                <div id="control-view" class="div-controls-left">
+                    <div id="divLegendButton" class="div-buttons div-controls-left">
+                        <label for="cbShowLegend">Toggle Legend</label><input id="cbShowLegend" type="checkbox" checked>
+                    </div>
+                    <div id="divResetButtons" class="div-buttons div-controls-right">
+                        <button id="btResetView">Reset view</button>
+                        <button id="btClearSelection">Clear selection</button>
+                    </div>
+                    <div id="divMode" class="div-buttons div-controls-right">
+                        <input type="radio" id="rdModeDefault" name="rdMode" value="default" checked><label for="rdModeDefault">Default</label>
+                        <input type="radio" id="rdModeDiff" name="rdMode" value="diff" ><label for="rdModeDiff">Difference</label>
+                    </div>
+                    <div class="div-clear"></div>
+
+                    <div id="divSliderContainer"></div>
 
                 </div>
-            </div>
-            <div id="control-view">
-                <div id="divMode" class="div-buttons">
-                    <input type="radio" id="rdModeDefault" name="rdMode" value="default" checked><label for="rdModeDefault">Default</label>
-                    <input type="radio" id="rdModeDiff" name="rdMode" value="diff" ><label for="rdModeDiff">Difference</label>
-                </div>
-                <div id="divResetButtons" class="div-buttons">
-                    <button id="btResetView">Reset view</button>
-                    <button id="btClearSelection">Clear selection</button>
-                </div>
-                <div id="divLegendButton" class="div-buttons">
-                    <label for="cbShowLegend">Toggle Legend</label><input id="cbShowLegend" type="checkbox" checked>
-                </div>
-
-                <p style="text-align:center">
-                    <label for="year">Selected year:</label>
-                    <input type="text" id="year" readonly style="border:0; color:#000000; font-weight:bold;">
-                </p>
-                <div id="divSliderContainer"></div>
 
             </div>
-        </div>
-        <div id="right">
-            <div id="linePlot"></div>
-            <div id="diffLinePlot"></div>
-            <div id="barChartTitle">
-                <label>Sort values<input id="sortCheck" type="checkbox"></label>
+            <div id="right">
+                <div id="linePlot"></div>
+                <div id="diffLinePlot"></div>
+                <div id="barChartTitle">
+                    <label>Sort values<input id="sortCheck" type="checkbox"></label>
+                </div>
+                <div id="barChart"></div>
+                <div id="barChartXAxis"></div>  
+
             </div>
-            <div id="barChart"></div>
-            <div id="barChartXAxis"></div>  
         </div>
         <script type="text/javascript" src="js/main.js"></script>
     </body>

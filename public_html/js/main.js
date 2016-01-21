@@ -151,9 +151,9 @@ function setSlider() {
         step: 1,
         slide: function (event, ui) {
             if (mode === MODE_DEFAULT) {
-                $("#year").val(ui.value);
+                $("#year").text(ui.value);
             } else if (mode === MODE_DIFF) {
-                $("#year").val(ui.values[0] + " to " + ui.values[1]);
+                $("#year").text(ui.values[0] + " to " + ui.values[1]);
             }
             if (mode === MODE_DEFAULT) {
                 inputColors(ui.value);
@@ -178,13 +178,10 @@ function setSlider() {
             range: true,
             values: [value1, value2]
         });
-        $("#year").val($("#slider").slider("values", 0) + " to " + $("#slider").slider("values", 1));
+        $("#year").text($("#slider").slider("values", 0) + " to " + $("#slider").slider("values", 1));
     } else if (mode === MODE_DEFAULT) {
-        $("#year").val($("#slider").slider("value"));
+        $("#year").text($("#slider").slider("value"));
     }
-
-    // Initialize value
-    $("#year").val($("#slider").slider("value"));
 }
 
 function setLegend() {
