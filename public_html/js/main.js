@@ -22,25 +22,13 @@ var noDataFill = {
     noData: "#dddddd"
 };
 
-var mapColorBins = [
-    {value: 20, color: "#eff3ff"},
-    {value: 40, color: "#bdd7e7"},
-    {value: 60, color: "#6baed6"},
-    {value: 80, color: "#3182bd"},
-    {value: 100, color: "#08519c"}
-];
-
-var colorBins = d3.scale.threshold()
+var defaultColorBins = d3.scale.threshold()
         .domain([20, 40, 60, 80, 100])
         .range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c", "#000000"]);
 
-var mapDiffColorBins = [
-    {value: -100, color: "#fcae91"},
-    {value: 0, color: "#edf8e9"},
-    {value: 20, color: "#bae4b3"},
-    {value: 40, color: "#74c476"},
-    {value: 60, color: "#238b45"}
-];
+var diffColorBins = d3.scale.threshold()
+        .domain([0, 20, 40, 60])
+        .range(["#fcae91", "#edf8e9", "#bae4b3", "#74c476", "#238b45"]);
 
 // Create the measurement node for scroll-bar measurement
 var scrollDiv = document.createElement("div");
@@ -407,20 +395,12 @@ function getColor(value, mode) {
 
     var bins;
     if (mode === MODE_DEFAULT) {
-        bins = mapColorBins;
+        bins = defaultColorBins;
     } else if (mode === MODE_DIFF) {
-        bins = mapDiffColorBins;
+        bins = diffColorBins;
     }
 
-    var index = 0;
-    var currentBin = bins[index];
-    var returnColor = currentBin.color;
-    while (currentBin !== undefined && currentBin.value <= value) {
-        returnColor = currentBin.color;
-        index++;
-        currentBin = bins[index];
-    }
-    return returnColor;
+    return bins(value);
 }
 
 function selectedCountryIndex(country) {
@@ -674,7 +654,7 @@ function updateBarChart(sliderYear) {
                 return barChartXScale(getCurrentConnectivity(d, sliderYear));
             })
             .style("fill", function (d) {
-                return colorBins(getCurrentConnectivity(d, sliderYear));
+                return defaultColorBins(getCurrentConnectivity(d, sliderYear));
             })
             .on('mouseover', function (d) {
                 addHighlight(d.id);
