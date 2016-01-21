@@ -93,8 +93,7 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
-    // Dialog for legend
-    $("#dialog").dialog();
+    setLegend()
 
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
@@ -125,6 +124,17 @@ function setButtons() {
 
     $("#btResetView").button();
     $("#btClearSelection").button();
+    $("#cbShowLegend").button();
+    
+    $("#cbShowLegend").change(function() {
+       var checked = $("#cbShowLegend").prop("checked");
+        if (checked) {
+            $("#divLegend").dialog( "open" );
+        }
+        else {
+            $("#divLegend").dialog( "close" );
+        }
+    });
 
     $("#btResetView").click(function () {
         resetView();
@@ -186,6 +196,19 @@ function setSlider() {
 
     // Initialize value
     $("#year").val($("#slider").slider("value"));
+}
+
+function setLegend() {
+    var show = $('#cbShowLegend').prop('checked');
+    
+    $("#divLegend").dialog({
+        autoOpen: show,
+        position: { my: "left bottom", at: "left bottom", of: mainView },
+        close: function() {
+            $("#cbShowLegend").prop( "checked", false );
+            $("#cbShowLegend").button( "refresh" );
+        }
+    });
 }
 
 function redrawColors() {
