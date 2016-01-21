@@ -8,6 +8,29 @@
     box-sizing: border-box;
 }
 
+body{
+    margin: 0;
+}
+
+h1 {
+    margin: 0px;
+    padding: 10px;
+    font-size: 2em;
+    font-family: Helvetica Neue, Helvetica, Arial, sans serif;
+    max-height: 60px;
+    height: 60px;
+    color: #666;
+    border-bottom: 1px solid #666;
+}
+
+#wrapper {
+    position: absolute;
+    top: 60px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
 #left{
     position: absolute;
     top: 0;
@@ -77,14 +100,23 @@
 #main-view {
     position: absolute;
     top: 0;
-    bottom: 15%;
+    bottom: 100px;
     left: 0;
     right: 0;
 }
 
+.year-overlay {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    color: #000;
+    opacity: 0.6;
+    font-size: 2em;
+}
+
 #control-view {
     position: absolute;
-    top: 85%;
+    height: 100px;
     bottom: 0;
     left: 0;
     right: 0;
@@ -101,12 +133,24 @@
     display: inline-block;
 }
 
+.div-controls-left {
+    float: left;
+}
+
+.div-controls-right {
+    float: right;
+}
+
 .ui-widget {
     font-size: 1em !important;
 }
 
 .ui-dialog-title {
     font-size: 0.8em;
+}
+
+.ui-buttonset {
+    padding: 2px;
 }
 
 #slider{
@@ -135,5 +179,10 @@ path.highlighted{
 	overflow: scroll;
 	position: absolute;
 	top: -9999px;
+}
+
+.div-clear {
+    clear: both;
+    height: 0;
 }
 
