@@ -103,12 +103,14 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
 
+    // Dialog for legend
+    $("#dialog").dialog();
+
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
             var target = d3.select(d3.event.target).data()[0].id;
             addHighlight(target);
-            //d3.select(d3.event.target).style({"stroke-width": "3px", "stroke": "f00"});
 
         }
     });
@@ -117,12 +119,6 @@ $(document).ready(function () {
         if (d3.event.target.tagName === "path") {
             var target = d3.select(d3.event.target).data()[0].id;
             removeHighlight(target);
-            //console.log(d3.select(".datamaps-subunit." + target).data()[0]);
-            /*
-             var oldAttributes = d3.select(d3.event.target).attr("data-previousAttributes");
-             d3.select(d3.event.target).style(oldAttributes);
-             */
-
         }
     });
 
@@ -155,6 +151,7 @@ function setSlider() {
             } else if (mode === MODE_DIFF) {
                 inputColors(ui.values[0], ui.values[1]);
             }
+            d3.select("#sortCheck").property("checked", false);
         }
     });
 
@@ -758,9 +755,9 @@ function dataInit(data) {
                     return y0(b.id) - y0(a.id);
                 });
 
-        var transition = barChartG.transition().duration(100),
+        var transition = barChartG.transition().duration(250),
                 delay = function (d, i) {
-                    return i * 1;
+                    return i * 5;
                 };
 
         transition.selectAll(".bar")
@@ -800,9 +797,21 @@ function uponLoad(error, result) {
         result.forEach(type);
         dataInit(result);
         updateBarChart();
+
+        //checkIDs();
     }
 
 }
 
-//d3.csv('connectivity.csv', type, dataInit);
+function checkIDs() {
+    var DatamapObjects = Datamap.prototype.worldTopo.objects.world.geometries.slice();
+    DatamapObjects.sort(function (a, b) {
+        return d3.ascending(a.properties.name, b.properties.name);
+    });
+
+    DatamapObjects.forEach(
+            function (d, i) {
+                console.log(d.properties.name + " -> " + d.id);
+            });
+}
 
