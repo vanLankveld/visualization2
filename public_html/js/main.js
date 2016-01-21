@@ -160,6 +160,7 @@ function setSlider() {
                 updateBarChart(ui.value);
             } else if (mode === MODE_DIFF) {
                 inputColors(ui.values[0], ui.values[1]);
+                updateBarChart(ui.values[0], ui.values[1]);
             }
             d3.select("#sortCheck").property("checked", false);
         }
@@ -242,7 +243,7 @@ function removeHighlight(id) {
         if (mode === MODE_DEFAULT) {
             oldColor = getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value")));
         } else if (mode === MODE_DIFF) {
-            oldColor = getSingleCountryDiffColor(highlightedCountry, parseInt($("#slider").slider("value")));
+            oldColor = getSingleCountryDiffColor(highlightedCountry, parseInt($("#slider").slider("values",0)),parseInt($("#slider").slider("values",1)));
         }
 
         d3.select(".datamaps-subunit." + highlightedCountry).style('fill', oldColor);
@@ -631,12 +632,20 @@ var barChartYAxisG = barChartG.append("g")
         .attr("class", "y axis");
 
 
-function updateBarChart(sliderYear) {
-    if (sliderYear === undefined) {
-        sliderYear = $('#slider').slider("value");
+function updateBarChart(yearStart, yearEnd) {
+    if (mode === MODE_DEFAULT) {
+        if (yearStart === undefined) {
+            yearStart = $('#slider').slider("value");
+        }
+        barChartXScale.domain([0, 100]);
+    } else if (mode === MODE_DIFF) {
+        if (yearStart === undefined || yearEnd === undefined) {
+            yearStart = $('#slider').slider("values", 0);
+            yearStart = $('#slider').slider("values", 1);
+        }
+        barChartXScale.domain([-100, 100]);
     }
 
-    barChartXScale.domain([0, 100]);
     barChartYScale.domain(allCountries.map(function (d) {
         return d.id;
     }));
@@ -657,19 +666,37 @@ function updateBarChart(sliderYear) {
             .attr("id", function (d) {
                 return d.id;
             })
-            .attr("x", 0)
-            .attr("width", function (d) {
-                return barChartXScale(getCurrentConnectivity(d, sliderYear));
-            })
-            .style("fill", function (d) {
-                return defaultColorBins(getCurrentConnectivity(d, sliderYear));
-            })
             .on('mouseover', function (d) {
                 addHighlight(d.id);
             })
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
             });
+
+    if (mode === MODE_DEFAULT) {
+        rects
+                .attr("x", 0)
+                .attr("width", function (d) {
+                    return barChartXScale(getCurrentConnectivity(d, yearStart));
+                })
+                .style("fill", function (d) {
+                    return defaultColorBins(getCurrentConnectivity(d, yearStart));
+                });
+    } else if (mode === MODE_DIFF) {
+        rects
+                .attr("x", function (d) {
+                    return barChartXScale(d3.min([0, getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart)]));
+                })
+                .attr("width", function (d) {
+                    return Math.abs(barChartXScale(getCurrentConnectivity(d, yearEnd)) - barChartXScale(getCurrentConnectivity(d, yearStart)));
+                    //return barChartXScale(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart));
+                })
+                .style("fill", function (d) {
+                    return diffColorBins(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart));
+                });
+    }
+
+    updateLegend();
 }
 
 function updatePlot() {
@@ -711,11 +738,21 @@ function updatePlot() {
 }
 
 function updateLegend() {
+    var legend;
     var legendRectSize = 18;
     var legendSpacing = 4;
 
-    var legend = legendG.selectAll('.legend')
-            .data(selectedCountries);
+    if (selectedCountries.length > 0) {
+        legend = legendG.selectAll('.legend')
+                .data(selectedCountries);
+    } else if (mode === MODE_DEFAULT) {
+        legend = legendG.selectAll('.legend')
+                .data(defaultColorBins.range());
+    } else if (mode === MODE_DIFF) {
+        legend = legendG.selectAll('.legend')
+                .data(diffColorBins.range());
+    }
+
 
     var legendEnter = legend.enter()
             .append('g')
@@ -731,23 +768,38 @@ function updateLegend() {
     legendEnter.append('rect');
     legendEnter.append('text');
 
+
     legend.select('rect')
             .attr('width', legendRectSize)
             .attr('height', legendRectSize)
-            .style("fill", function (d) {
-                return color(d.id);
+            .style("fill", function (d, i) {
+                if (selectedCountries.length > 0) {
+                    return color(d.id);
+                } else if (mode === MODE_DEFAULT) {
+                    return defaultColorBins.range()[i];
+                } else if (mode === MODE_DIFF) {
+                    return diffColorBins.range()[i];
+                }
             })
-            .style("stroke", function (d) {
-                return color(d.id);
+            .style("stroke", function (d, i) {
+                return "#000";
+                //return color(d.id);
             });
 
     legend.select('text')
             .attr('x', legendRectSize + legendSpacing)
             .attr('y', legendRectSize - legendSpacing)
             .text(function (d, i) {
-                return Datamap.prototype.worldTopo.objects.world.geometries.filter(function (country) {
-                    return country.id === selectedCountries[i].id;
-                })[0].properties.name;
+                if (selectedCountries.length > 0) {
+                    return Datamap.prototype.worldTopo.objects.world.geometries.filter(function (country) {
+                        return country.id === selectedCountries[i].id;
+                    })[0].properties.name;
+                } else if (mode === MODE_DEFAULT) {
+                    return defaultColorBins.invertExtent(defaultColorBins.range()[i]);
+                } else if (mode === MODE_DIFF) {
+                    return diffColorBins.invertExtent(diffColorBins.range()[i]);
+                }
+
             });
 
     legend.exit().remove();
@@ -792,15 +844,29 @@ function dataInit(data) {
     d3.select("#sortCheck").on("change", change);
 
     function change() {
+        var yearStart, yearEnd, sortValue
+        if (mode === MODE_DEFAULT) {
+            yearStart = $('#slider').slider("value");
+            sortValue = function (a, b) {
+                return getCurrentConnectivity(a, yearStart) - getCurrentConnectivity(b, yearStart);
+            };
+        } else if (mode === MODE_DIFF) {
+            yearStart = $('#slider').slider("values", 0);
+            yearEnd = $('#slider').slider("values", 1);
+            sortValue = function (a, b) {
+                return (getCurrentConnectivity(a, yearEnd) - getCurrentConnectivity(a, yearStart)) -
+                        (getCurrentConnectivity(b, yearEnd) - getCurrentConnectivity(b, yearStart));
+            };
+        }
+
+        //getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart)
 
         // Copy-on-write since tweens are evaluated after a delay.
         var y0 = barChartYScale.domain(allCountries.sort(this.checked
-                ? function (a, b) {
-                    return getCurrentConnectivity(a) - getCurrentConnectivity(b);
-                }
-        : function (a, b) {
-            return d3.descending(a.id, b.id);
-        })
+                ? sortValue
+                : function (a, b) {
+                    return d3.descending(a.id, b.id);
+                })
                 .map(function (d) {
                     return d.id;
                 }))
