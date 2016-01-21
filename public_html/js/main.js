@@ -108,11 +108,15 @@ function setButtons() {
         mode = $(this).val();
         setSlider();
         redrawColors();
+        $("#cbSortValues").prop("checked", false);
+        $("#cbSortValues").button("refresh");
+        updateBarChart();
     });
 
     $("#btResetView").button();
     $("#btClearSelection").button();
     $("#cbShowLegend").button();
+    $("#cbSortValues").button();
 
     $("#cbShowLegend").change(function () {
         var checked = $("#cbShowLegend").prop("checked");
@@ -162,7 +166,8 @@ function setSlider() {
                 inputColors(ui.values[0], ui.values[1]);
                 updateBarChart(ui.values[0], ui.values[1]);
             }
-            d3.select("#sortCheck").property("checked", false);
+            $("#cbSortValues").prop("checked", false);
+            $("#cbSortValues").button("refresh");
         }
     });
 
@@ -215,8 +220,8 @@ function addHighlight(id) {
     d3.select(".datamaps-subunit." + id).style("stroke-width", "5px");
     d3.select(".datamaps-subunit." + id).style("stroke", "#000");
 
-    // Highlight LinePlot
-    d3.select("#" + highlightedCountry).classed("highlighted", true);
+    // Highlight LinePlot and diffPlot
+    d3.selectAll("#" + highlightedCountry).classed("highlighted", true);
 }
 
 function removeHighlight(id) {
@@ -224,7 +229,7 @@ function removeHighlight(id) {
     if (highlightedCountry != null) {
 
         // unSet LinePlot highlight
-        d3.select("#" + highlightedCountry).classed("highlighted", false);
+        d3.selectAll("#" + highlightedCountry).classed("highlighted", false);
 
         // unSet dataMap highlight
         var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
@@ -240,7 +245,7 @@ function removeHighlight(id) {
         if (mode === MODE_DEFAULT) {
             oldColor = getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value")));
         } else if (mode === MODE_DIFF) {
-            oldColor = getSingleCountryDiffColor(highlightedCountry, parseInt($("#slider").slider("values",0)),parseInt($("#slider").slider("values",1)));
+            oldColor = getSingleCountryDiffColor(highlightedCountry, parseInt($("#slider").slider("values", 0)), parseInt($("#slider").slider("values", 1)));
         }
 
         d3.select(".datamaps-subunit." + highlightedCountry).style('fill', oldColor);
@@ -265,7 +270,9 @@ function renderWorldMap(renderColors) {
         fills: {
             defaultFill: noDataFill.noData
         },
-        done: onCountryClick,
+        done: function (datamap) {
+            datamap.svg.selectAll('.datamaps-subunit').on('click', handleClick);
+        },
         geographyConfig: {
             highlightOnHover: false/*,
              highlightFillColor: 'rgba(0,0,0,0.1)',
@@ -281,30 +288,26 @@ function renderWorldMap(renderColors) {
     setMouseEvents();
 }
 
-function onCountryClick(datamap) {
-    datamap.svg.selectAll('.datamaps-subunit').on('click', function (geography) {
-
-        var filterResult = allCountries.filter(function (country) {
-            return country.id === geography.id;
-        });
-
-        if (filterResult[0] == null) {
-            return;
-        }
-
-        var clickedCountry = filterResult[0];
-
-        var index = selectedIndex(clickedCountry.id);
-        if (index >= 0) {
-            selectedCountries.splice(index, 1);
-        } else {
-            selectedCountries.push(clickedCountry);
-        }
-
-        updateSelection();
-
-
+function handleClick(object) {
+    var filterResult = allCountries.filter(function (country) {
+        return country.id === object.id;
     });
+
+    if (filterResult[0] === null) {
+        return;
+    }
+
+    var clickedCountry = filterResult[0];
+
+    var index = selectedIndex(clickedCountry.id);
+    if (index >= 0) {
+        selectedCountries.splice(index, 1);
+    } else {
+        selectedCountries.push(clickedCountry);
+    }
+
+    updateSelection();
+
 }
 
 function updateSelection() {
@@ -329,7 +332,9 @@ function updateSelection() {
         updatePlot();
     } else {
         // BarChart mode
-
+        updateBarChart();
+        $("#cbSortValues").prop("checked", false);
+        $("#cbSortValues").button("refresh");
     }
 
     redrawColors();
@@ -577,7 +582,7 @@ var linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
         .ticks(5)                   // Use approximately 5 ticks marks.
         .outerTickSize(0);          // Turn off the marks at the end of the axis.
 
-var line = d3.svg.line()
+var linePlotLine = d3.svg.line()
         //.interpolate("basis")
         .x(function (d) {
             return linePlotXScale(d.Year);
@@ -586,6 +591,43 @@ var line = d3.svg.line()
             return linePlotYScale(d.Connectivity);
         });
 
+// diffLine Plot
+var diffLinePlotOuterWIdth = $('#diffLinePlot').width();
+var diffLinePlotOuterHeight = $('#diffLinePlot').height();
+var diffLinePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
+var diffLinePlotInnerWidth = diffLinePlotOuterWIdth - diffLinePlotMargin.left - diffLinePlotMargin.right;
+var diffLinePlotInnerHeight = diffLinePlotOuterHeight - diffLinePlotMargin.top - diffLinePlotMargin.bottom;
+
+var outerDiffLinePlotSvg = d3.select('#diffLinePlot').append('svg')
+        .attr('width', diffLinePlotOuterWIdth)
+        .attr('height', diffLinePlotOuterHeight);
+var diffLinePlotG = outerDiffLinePlotSvg.append("g")
+        .attr("transform", "translate(" + diffLinePlotMargin.left + "," + diffLinePlotMargin.top + ")");
+
+var diffLinePlotXAxisG = diffLinePlotG.append("g")
+        .attr("transform", "translate(0," + diffLinePlotInnerHeight + ")");
+var diffLinePlotYAxisG = diffLinePlotG.append("g");
+
+var diffLinePlotXScale = d3.scale.linear().range([0, diffLinePlotInnerWidth]);
+var diffLinePlotYScale = d3.scale.linear().range([diffLinePlotInnerHeight, 0]);
+
+var diffLinePlotXAxis = d3.svg.axis().scale(diffLinePlotXScale).orient("bottom")
+        .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
+        .outerTickSize(0);  // Turn off the marks at the end of the axis.
+var diffLinePlotYAxis = d3.svg.axis().scale(diffLinePlotYScale).orient("left")
+        .ticks(5)                   // Use approximately 5 ticks marks.
+        .outerTickSize(0);          // Turn off the marks at the end of the axis.
+
+var diffLinePlotLine = d3.svg.line()
+        //.interpolate("basis")
+        .x(function (d) {
+            return diffLinePlotXScale(d.Year);
+        })
+        .y(function (d) {
+            return diffLinePlotYScale(d.diffConnectivity);
+        });
+
+// Legend
 var legendSvg = d3.select('#divLegend').append('svg')
         .attr('width', 250)
         .attr('height', $('#divLegend').height());
@@ -638,7 +680,7 @@ function updateBarChart(yearStart, yearEnd) {
     } else if (mode === MODE_DIFF) {
         if (yearStart === undefined || yearEnd === undefined) {
             yearStart = $('#slider').slider("values", 0);
-            yearStart = $('#slider').slider("values", 1);
+            yearEnd = $('#slider').slider("values", 1);
         }
         barChartXScale.domain([-100, 100]);
     }
@@ -668,7 +710,8 @@ function updateBarChart(yearStart, yearEnd) {
             })
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
-            });
+            })
+            .on('click', handleClick);
 
     if (mode === MODE_DEFAULT) {
         rects
@@ -697,12 +740,9 @@ function updateBarChart(yearStart, yearEnd) {
 }
 
 function updatePlot() {
-
+// Line Plot
     linePlotXAxisG.call(linePlotXAxis);
     linePlotYAxisG.call(linePlotYAxis);
-
-
-    color.domain(colorDomain);
 
     var country = linePlotG.selectAll(".country")
             .data(selectedCountries);
@@ -714,7 +754,7 @@ function updatePlot() {
         return d.id;
     })
             .attr("d", function (d) {
-                return line(d.values);
+                return linePlotLine(d.values);
             })
             .style("stroke", function (d) {
                 return color(d.id);
@@ -726,9 +766,35 @@ function updatePlot() {
                 removeHighlight(d.id);
             });
 
-
     country.exit().remove();
 
+    // diffLine Plot
+    diffLinePlotXAxisG.call(diffLinePlotXAxis);
+    diffLinePlotYAxisG.call(diffLinePlotYAxis);
+
+    var countryDiff = diffLinePlotG.selectAll(".countryDiff")
+            .data(selectedCountries);
+
+    countryDiff.enter().append("path")
+            .attr("class", "countryDiff");
+
+    countryDiff.attr("id", function (d) {
+        return d.id;
+    })
+            .attr("d", function (d) {
+                return diffLinePlotLine(d.diffValues);
+            })
+            .style("stroke", function (d) {
+                return color(d.id);
+            })
+            .on('mouseover', function (d) {
+                addHighlight(d.id);
+            })
+            .on('mouseleave', function (d) {
+                removeHighlight(d.id);
+            });
+
+    countryDiff.exit().remove();
 
     updateLegend();
 
@@ -832,13 +898,39 @@ function dataInit(data) {
         };
     });
 
+    // Calculate diff Values
+    allCountries.forEach(function (d) {
+        d.diffValues = [];
+        for (var i = 0; i < d.values.length - 1; i++) {
+            d.diffValues[i] = {
+                Year: d.values[i + 1].Year,
+                diffConnectivity: (d.values[i + 1].Connectivity - d.values[i].Connectivity)
+            };
+        }
+    });
+
+    var max = d3.max(allCountries, function (d) {
+        return d3.max(d.diffValues, function (d) {
+            return d.diffConnectivity;
+        });
+    });
+    var min = d3.min(allCountries, function (d) {
+        return d3.min(d.diffValues, function (d) {
+            return d.diffConnectivity;
+        });
+    });
+    diffLinePlotXScale.domain(d3.extent(allCountries[0].diffValues, function (d) {
+        return d.Year;
+    }));
+    diffLinePlotYScale.domain([min, max]);
+
     allCountries.sort(function (a, b) {
         return d3.descending(a.id, b.id);
     });
 
 
     // SORTING
-    d3.select("#sortCheck").on("change", change);
+    d3.select("#cbSortValues").on("change", change);
 
     function change() {
         var yearStart, yearEnd, sortValue
