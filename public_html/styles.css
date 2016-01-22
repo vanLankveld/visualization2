@@ -148,6 +148,11 @@ h1 {
     overflow: hidden;
 }
 
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
+
 .div-buttons {
     display: inline-block;
 }

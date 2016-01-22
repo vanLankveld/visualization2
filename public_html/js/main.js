@@ -93,6 +93,9 @@ var diffLinePlotLine = d3.svg.line()
             return diffLinePlotYScale(d.diffConnectivity);
         });
 
+// Focus
+var focus;
+
 // Bar chart
 var barChartMargin;
 var barChartOuterWidth;
@@ -147,13 +150,14 @@ var waitForFinalEvent = (function () {
 })();
 
 var allCountries = null;
+var allCountriesSorted = null;
 var selectedCountries = [];
 var highlightedCountry = null;
 
 $(document).ready(function () {
     mainView = $('#main-view');
     initGs();
-    
+
     // Create slider
     setSlider();
 
@@ -382,15 +386,7 @@ function renderWorldMap(renderColors) {
                     return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong> <br/>' + d3.round(getCurrentConnectivity(getDataByID(geography.id), yearEnd) - getCurrentConnectivity(getDataByID(geography.id), yearStart), 1) + "%" + '</div>';
                 }
             },
-            highlightOnHover: false/*,
-             highlightFillColor: 'rgba(0,0,0,0.1)',
-             highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
-             highlightBorderWidth: 3,
-             highlightBorderOpacity: 0.2
-             div.html(function(h){
-             
-             }
-             */
+            highlightOnHover: false
         }
     });
     if (renderColors) {
@@ -717,6 +713,19 @@ function initGs() {
             .y(function (d) {
                 return diffLinePlotYScale(d.diffConnectivity);
             });
+
+    // Focus
+    focus = linePlotG.append("g")
+            .attr("class", "focus")
+            .style("display", "none");
+
+    focus.append("circle")
+            .attr("r", 4.5);
+
+    focus.append("text")
+            .attr("x", 9)
+            .attr("dy", ".35em");
+
 // Legend
 
 
@@ -840,6 +849,8 @@ function updateBarChart(yearStart, yearEnd) {
     updateLegend();
 }
 
+
+
 function updatePlot() {
 // Line Plot
     linePlotXAxisG.call(linePlotXAxis);
@@ -864,6 +875,37 @@ function updatePlot() {
                 removeHighlight(d.id);
             });
     country.exit().remove();
+
+
+    linePlotG.append("rect")
+            .attr("class", "overlay")
+            .attr("width", linePlotInnerWidth)
+            .attr("height", linePlotInnerHeight)
+            .on("mouseover", function () {
+                focus.style("display", null);
+            })
+            .on("mouseout", function () {
+                focus.style("display", "none");
+            })
+            .on("mousemove", mousemove);
+
+    function mousemove() {
+        var bisector = d3.bisector(function (d, x) {
+            return d3.ascending(d.Year, x);
+        }).left;
+        var x0 = linePlotXScale.invert(d3.mouse(this)[0]),
+                i = bisector(selectedCountries[0].values, x0);
+        d0 = selectedCountries[0].values[i - 1],
+                d1 = selectedCountries[0].values[i],
+                d = x0 - d0.Year > d1.Year - x0 ? d1 : d0;
+
+        console.log(d);
+
+        focus.attr("transform", "translate(" + linePlotXScale(d.Year) + "," + linePlotYScale(d.Connectivity) + ")");
+        focus.select("text").text(d.Connectivity);
+    }
+
+
     // diffLine Plot
     diffLinePlotXAxisG.call(diffLinePlotXAxis);
     diffLinePlotYAxisG.call(diffLinePlotYAxis);
@@ -994,6 +1036,10 @@ function dataInit(data) {
             };
         }
     });
+    allCountriesSorted = allCountries.slice().sort(function (a, b) {
+        return d3.ascending(a.id, b.id);
+    });
+
     var max = d3.max(allCountries, function (d) {
         return d3.max(d.diffValues, function (d) {
             return d.diffConnectivity;
@@ -1084,6 +1130,7 @@ function uponLoad(error, result) {
         dataInit(result);
         updateBarChart();
         //checkIDs();
+        //tryBisect();
     }
 
 }
@@ -1099,3 +1146,20 @@ function checkIDs() {
             });
 }
 
+function tryBisect() {
+
+    var data = allCountries;
+
+    data.sort(function (a, b) {
+        return d3.ascending(a.id, b.id);
+    });
+    console.log(data);
+
+    var bisector = d3.bisector(function (a, b) {
+        return d3.ascending(a.id, b);
+    }).left;
+
+    var toFind = "NLD";
+    console.log("Found " + toFind + " at index: " + bisector(data, toFind));
+    return;
+}
