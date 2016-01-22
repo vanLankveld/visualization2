@@ -12,6 +12,10 @@ body{
     margin: 0;
 }
 
+div.tooltip {	
+    position: absolute;					
+}
+
 h1 {
     margin: 0px;
     padding: 10px;
@@ -138,6 +142,10 @@ h1 {
     position: relative;
     width: 80%;
     margin: auto;
+}
+
+#divLegend{
+    overflow: hidden;
 }
 
 .div-buttons {

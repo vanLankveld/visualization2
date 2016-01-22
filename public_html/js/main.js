@@ -78,6 +78,9 @@ $(document).ready(function () {
         waitForFinalEvent(function () {
             afterResizeId = 0;
             renderWorldMap(true);
+            initGs();
+            updateBarChart();
+            updatePlot();
         }, 500, (afterResizeId++) + "");
     });
 
@@ -88,7 +91,6 @@ $(document).ready(function () {
         if (d3.event.target.tagName === "path") {
             var target = d3.select(d3.event.target).data()[0].id;
             addHighlight(target);
-
         }
     });
 
@@ -198,6 +200,11 @@ function setLegend() {
         close: function () {
             $("#cbShowLegend").prop("checked", false);
             $("#cbShowLegend").button("refresh");
+        },
+        resize: function (event, ui) {
+            d3.select("#divLegend")
+                    .attr("width", ui.size.width)
+                    .attr("height", ui.size.height);
         }
     });
 }
@@ -274,11 +281,24 @@ function renderWorldMap(renderColors) {
             datamap.svg.selectAll('.datamaps-subunit').on('click', handleClick);
         },
         geographyConfig: {
+            popupTemplate: function (geography, data) { //this function should just return a string
+                if (mode === MODE_DEFAULT) {
+                    return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong> <br/>' + d3.round(getCurrentConnectivity(getDataByID(geography.id)), 1) + "%" + '</div>';
+                } else if (mode === MODE_DIFF) {
+                    var yearStart = $('#slider').slider("values", 0);
+                    var yearEnd = $('#slider').slider("values", 1);
+                    return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong> <br/>' + d3.round(getCurrentConnectivity(getDataByID(geography.id), yearEnd) - getCurrentConnectivity(getDataByID(geography.id), yearStart), 1) + "%" + '</div>';
+                }
+            },
             highlightOnHover: false/*,
              highlightFillColor: 'rgba(0,0,0,0.1)',
              highlightBorderColor: 'rgba(0, 0, 0, 0.2)',
              highlightBorderWidth: 3,
-             highlightBorderOpacity: 0.2*/
+             highlightBorderOpacity: 0.2
+             div.html(function(h){
+             
+             }
+             */
         }
     });
     if (renderColors) {
@@ -292,13 +312,11 @@ function handleClick(object) {
     var filterResult = allCountries.filter(function (country) {
         return country.id === object.id;
     });
-
     if (filterResult[0] === null) {
         return;
     }
 
     var clickedCountry = filterResult[0];
-
     var index = selectedIndex(clickedCountry.id);
     if (index >= 0) {
         selectedCountries.splice(index, 1);
@@ -307,7 +325,6 @@ function handleClick(object) {
     }
 
     updateSelection();
-
 }
 
 function updateSelection() {
@@ -327,11 +344,11 @@ function updateSelection() {
     }
 
     if (selectedCountries.length > 0) {
-        // LinePlot mode
+// LinePlot mode
         updateColorScale();
         updatePlot();
     } else {
-        // BarChart mode
+// BarChart mode
         updateBarChart();
         $("#cbSortValues").prop("checked", false);
         $("#cbSortValues").button("refresh");
@@ -346,7 +363,7 @@ function updateColorScale() {
             return country === selectedCountries[i].id;
         });
         if (newColor.length === 0) {
-            // selected country is not assigned a color yet
+// selected country is not assigned a color yet
             var assigned = false;
             for (var j = 0; j < colorDomain.length; j++) {
                 var insertColor = selectedCountries.filter(function (country) {
@@ -363,7 +380,7 @@ function updateColorScale() {
         }
     }
 
-    // clean up
+// clean up
     var cleaning = true;
     while (cleaning) {
         var lastColor = selectedCountries.filter(function (country) {
@@ -425,9 +442,7 @@ function getSingleCountryColor(country, year) {
         }
     }
     var row = csv[index];
-
     var selectedIndex = selectedCountryIndex(country);
-
     if (selectedIndex !== -1) {
         return color(country);
     }
@@ -442,10 +457,8 @@ function getSingleCountryDiffColor(country, yearStart, yearEnd) {
 function getDiffForCountry(country, yearStart, yearEnd, asDerivative) {
     var valueStart = "";
     var valueEnd = "";
-
     var dYear = 0;
     var inRange;
-
     for (var row in csv) {
         if (csv[row]["Year"] === yearStart.toString()) {
             inRange = true;
@@ -464,7 +477,6 @@ function getDiffForCountry(country, yearStart, yearEnd, asDerivative) {
     }
 
     var dValue = (valueEnd - valueStart);
-
     if (asDerivative) {
         return dValue / dYear;
     }
@@ -476,7 +488,6 @@ function inputColors(yearStart, yearEnd) {
 
     if (yearEnd !== undefined) {
         var countryList = [];
-
         for (var key in csv[0]) {
             if (key !== "Year") {
                 countryList.push(key);
@@ -488,7 +499,6 @@ function inputColors(yearStart, yearEnd) {
         for (var i in countryList) {
             var country = countryList[parseInt(i)];
             var countryColor = "";
-
             var selectedIndex = selectedCountryIndex(country);
             if (selectedIndex !== -1) {
                 countryColor = color(country);
@@ -499,7 +509,6 @@ function inputColors(yearStart, yearEnd) {
         }
         json += entries.join(',');
         json += "}";
-
         worldMap.updateChoropleth(JSON.parse(json));
         return;
     }
@@ -517,7 +526,6 @@ function inputColors(yearStart, yearEnd) {
     for (var country in row) {
         if (row.hasOwnProperty(country) && country !== "Year") {
             var countryColor = "";
-
             var selectedIndex = selectedCountryIndex(country);
             if (selectedIndex !== -1) {
                 countryColor = color(country);
@@ -538,7 +546,6 @@ function setMouseEvents() {
     zoom = d3.behavior.zoom()
             .scaleExtent([1, 10])
             .on("zoom", onZoom);
-
     worldMap.svg.call(zoom);
 }
 
@@ -561,26 +568,22 @@ var linePlotOuterHeight = $('#linePlot').height();
 var linePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
 var linePlotInnerWidth = linePlotOuterWIdth - linePlotMargin.left - linePlotMargin.right;
 var linePlotInnerHeight = linePlotOuterHeight - linePlotMargin.top - linePlotMargin.bottom;
-
 var outerLinePlotSvg = d3.select('#linePlot').append('svg')
         .attr('width', linePlotOuterWIdth)
         .attr('height', linePlotOuterHeight);
 var linePlotG = outerLinePlotSvg.append("g")
         .attr("transform", "translate(" + linePlotMargin.left + "," + linePlotMargin.top + ")");
-
 var linePlotXAxisG = linePlotG.append("g")
         .attr("transform", "translate(0," + linePlotInnerHeight + ")");
 var linePlotYAxisG = linePlotG.append("g");
-
 var linePlotXScale = d3.scale.linear().range([0, linePlotInnerWidth]);
 var linePlotYScale = d3.scale.linear().range([linePlotInnerHeight, 0]);
-
 var linePlotXAxis = d3.svg.axis().scale(linePlotXScale).orient("bottom")
         .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
-        .outerTickSize(0);  // Turn off the marks at the end of the axis.
+        .outerTickSize(0); // Turn off the marks at the end of the axis.
 var linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
         .ticks(5)                   // Use approximately 5 ticks marks.
-        .outerTickSize(0);          // Turn off the marks at the end of the axis.
+        .outerTickSize(0); // Turn off the marks at the end of the axis.
 
 var linePlotLine = d3.svg.line()
         //.interpolate("basis")
@@ -590,33 +593,28 @@ var linePlotLine = d3.svg.line()
         .y(function (d) {
             return linePlotYScale(d.Connectivity);
         });
-
 // diffLine Plot
 var diffLinePlotOuterWIdth = $('#diffLinePlot').width();
 var diffLinePlotOuterHeight = $('#diffLinePlot').height();
 var diffLinePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
 var diffLinePlotInnerWidth = diffLinePlotOuterWIdth - diffLinePlotMargin.left - diffLinePlotMargin.right;
 var diffLinePlotInnerHeight = diffLinePlotOuterHeight - diffLinePlotMargin.top - diffLinePlotMargin.bottom;
-
 var outerDiffLinePlotSvg = d3.select('#diffLinePlot').append('svg')
         .attr('width', diffLinePlotOuterWIdth)
         .attr('height', diffLinePlotOuterHeight);
 var diffLinePlotG = outerDiffLinePlotSvg.append("g")
         .attr("transform", "translate(" + diffLinePlotMargin.left + "," + diffLinePlotMargin.top + ")");
-
 var diffLinePlotXAxisG = diffLinePlotG.append("g")
         .attr("transform", "translate(0," + diffLinePlotInnerHeight + ")");
 var diffLinePlotYAxisG = diffLinePlotG.append("g");
-
 var diffLinePlotXScale = d3.scale.linear().range([0, diffLinePlotInnerWidth]);
 var diffLinePlotYScale = d3.scale.linear().range([diffLinePlotInnerHeight, 0]);
-
 var diffLinePlotXAxis = d3.svg.axis().scale(diffLinePlotXScale).orient("bottom")
         .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
-        .outerTickSize(0);  // Turn off the marks at the end of the axis.
+        .outerTickSize(0); // Turn off the marks at the end of the axis.
 var diffLinePlotYAxis = d3.svg.axis().scale(diffLinePlotYScale).orient("left")
         .ticks(5)                   // Use approximately 5 ticks marks.
-        .outerTickSize(0);          // Turn off the marks at the end of the axis.
+        .outerTickSize(0); // Turn off the marks at the end of the axis.
 
 var diffLinePlotLine = d3.svg.line()
         //.interpolate("basis")
@@ -627,49 +625,159 @@ var diffLinePlotLine = d3.svg.line()
             return diffLinePlotYScale(d.diffConnectivity);
         });
 
-// Legend
-var legendSvg = d3.select('#divLegend').append('svg')
-        .attr('width', 250)
-        .attr('height', $('#divLegend').height());
-var legendG = legendSvg
-        .append('g');
-
-var colorDomain = [];
-var color = d3.scale.category10();   // set the colour scale 
-
 // Bar chart
 var barChartMargin = {left: 100, top: 50, right: 50, bottom: 0};
 var barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
 var barChartOuterHeight = 4 * $('#barChart').height();
 var barChartInnerWidth = barChartOuterWidth - barChartMargin.left - barChartMargin.right;
 var barChartInnerHeight = barChartOuterHeight - barChartMargin.top - barChartMargin.bottom;
-
 var barChartYScale = d3.scale.ordinal()
         .rangeBands([barChartInnerHeight, 0], 0.1);
 var barChartXScale = d3.scale.linear()
         .range([0, barChartInnerWidth]);
-
 var barChartXAxis = d3.svg.axis()
         .scale(barChartXScale)
         .orient("bottom");
 var barChartYAxis = d3.svg.axis()
         .scale(barChartYScale)
         .orient("left");
-
 var outerBarChartSvg = d3.select('#barChart').append('svg')
         .attr('width', barChartOuterWidth)
         .attr('height', barChartOuterHeight);
 var barChartG = outerBarChartSvg.append("g")
         .attr("transform", "translate(" + barChartMargin.left + "," + barChartMargin.top + ")");
-var barChartXAxisG = d3.select('#barChartXAxis').append('svg')
+var barChartXAxisSvg = d3.select('#barChartXAxis').append('svg')
         .attr('width', $('#barChartXAxis').width())
-        .attr('height', Math.floor($('#barChartXAxis').height()))
+        .attr('height', Math.floor($('#barChartXAxis').height()));
+var barChartXAxisG = barChartXAxisSvg
         .append("g")
         .attr("transform", "translate(" + barChartMargin.left + ",0)")
         .attr("class", "x axis");
 var barChartYAxisG = barChartG.append("g")
         .attr("class", "y axis");
 
+// Legend
+var legendSvg = d3.select('#divLegend').append('svg')
+        .attr('width', 250)
+        .attr('height', $('#divLegend').height());
+var legendG = legendSvg
+        .append('g');
+var colorDomain = [];
+var color = d3.scale.category10(); // set the colour scale 
+
+// Tooltip
+var toolTipDiv = d3.select("body").append("div")
+        .attr("class", "datamaps-hoverover")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("display", "block");
+
+var toolTip = toolTipDiv.append("div")
+        .attr("class", "hoverinfo");
+
+function initGs() {
+    // Line Plot
+    linePlotOuterWIdth = $('#linePlot').width();
+    linePlotOuterHeight = $('#linePlot').height();
+    linePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
+    linePlotInnerWidth = linePlotOuterWIdth - linePlotMargin.left - linePlotMargin.right;
+    linePlotInnerHeight = linePlotOuterHeight - linePlotMargin.top - linePlotMargin.bottom;
+    outerLinePlotSvg
+            .attr('width', linePlotOuterWIdth)
+            .attr('height', linePlotOuterHeight);
+    linePlotG = outerLinePlotSvg.append("g")
+            .attr("transform", "translate(" + linePlotMargin.left + "," + linePlotMargin.top + ")");
+    linePlotXAxisG = linePlotG.append("g")
+            .attr("transform", "translate(0," + linePlotInnerHeight + ")");
+    linePlotYAxisG = linePlotG.append("g");
+    linePlotXScale.range([0, linePlotInnerWidth]);
+    linePlotYScale.range([linePlotInnerHeight, 0]);
+    linePlotXAxis = d3.svg.axis().scale(linePlotXScale).orient("bottom")
+            .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
+            .outerTickSize(0); // Turn off the marks at the end of the axis.
+    linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
+            .ticks(5)                   // Use approximately 5 ticks marks.
+            .outerTickSize(0); // Turn off the marks at the end of the axis.
+
+    linePlotLine = d3.svg.line()
+            //.interpolate("basis")
+            .x(function (d) {
+                return linePlotXScale(d.Year);
+            })
+            .y(function (d) {
+                return linePlotYScale(d.Connectivity);
+            });
+// diffLine Plot
+    diffLinePlotOuterWIdth = $('#diffLinePlot').width();
+    diffLinePlotOuterHeight = $('#diffLinePlot').height();
+    diffLinePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
+    diffLinePlotInnerWidth = diffLinePlotOuterWIdth - diffLinePlotMargin.left - diffLinePlotMargin.right;
+    diffLinePlotInnerHeight = diffLinePlotOuterHeight - diffLinePlotMargin.top - diffLinePlotMargin.bottom;
+    outerDiffLinePlotSvg
+            .attr('width', diffLinePlotOuterWIdth)
+            .attr('height', diffLinePlotOuterHeight);
+    diffLinePlotG = outerDiffLinePlotSvg.append("g")
+            .attr("transform", "translate(" + diffLinePlotMargin.left + "," + diffLinePlotMargin.top + ")");
+    diffLinePlotXAxisG = diffLinePlotG.append("g")
+            .attr("transform", "translate(0," + diffLinePlotInnerHeight + ")");
+    diffLinePlotYAxisG = diffLinePlotG.append("g");
+    diffLinePlotXScale.range([0, diffLinePlotInnerWidth]);
+    diffLinePlotYScale.range([diffLinePlotInnerHeight, 0]);
+    diffLinePlotXAxis = d3.svg.axis().scale(diffLinePlotXScale).orient("bottom")
+            .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
+            .outerTickSize(0); // Turn off the marks at the end of the axis.
+    diffLinePlotYAxis = d3.svg.axis().scale(diffLinePlotYScale).orient("left")
+            .ticks(5)                   // Use approximately 5 ticks marks.
+            .outerTickSize(0); // Turn off the marks at the end of the axis.
+
+    diffLinePlotLine = d3.svg.line()
+            //.interpolate("basis")
+            .x(function (d) {
+                return diffLinePlotXScale(d.Year);
+            })
+            .y(function (d) {
+                return diffLinePlotYScale(d.diffConnectivity);
+            });
+// Legend
+
+
+    legendSvg
+            .attr('width', $('#divLegend').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
+            .attr('height', $('#divLegend').height());//-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
+    legendG = legendSvg
+            .append('g');
+
+// Bar chart
+    barChartMargin = {left: 100, top: 50, right: 50, bottom: 0};
+    barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
+    barChartOuterHeight = 4 * $('#barChart').height();
+    barChartInnerWidth = barChartOuterWidth - barChartMargin.left - barChartMargin.right;
+    barChartInnerHeight = barChartOuterHeight - barChartMargin.top - barChartMargin.bottom;
+    barChartYScale = d3.scale.ordinal()
+            .rangeBands([barChartInnerHeight, 0], 0.1);
+    barChartXScale = d3.scale.linear()
+            .range([0, barChartInnerWidth]);
+    barChartXAxis = d3.svg.axis()
+            .scale(barChartXScale)
+            .orient("bottom");
+    barChartYAxis = d3.svg.axis()
+            .scale(barChartYScale)
+            .orient("left");
+    outerBarChartSvg
+            .attr('width', barChartOuterWidth)
+            .attr('height', barChartOuterHeight);
+    barChartG = outerBarChartSvg.append("g")
+            .attr("transform", "translate(" + barChartMargin.left + "," + barChartMargin.top + ")");
+    barChartXAxisSvg
+            .attr('width', $('#barChartXAxis').width())
+            .attr('height', Math.floor($('#barChartXAxis').height()));
+    barChartXAxisG = barChartXAxisSvg
+            .append("g")
+            .attr("transform", "translate(" + barChartMargin.left + ",0)")
+            .attr("class", "x axis");
+    barChartYAxisG = barChartG.append("g")
+            .attr("class", "y axis");
+}
 
 function updateBarChart(yearStart, yearEnd) {
     if (mode === MODE_DEFAULT) {
@@ -688,16 +796,12 @@ function updateBarChart(yearStart, yearEnd) {
     barChartYScale.domain(allCountries.map(function (d) {
         return d.id;
     }));
-
     barChartXAxisG.call(barChartXAxis);
     barChartYAxisG.call(barChartYAxis);
-
     var rects = barChartG.selectAll(".bar")
             .data(allCountries);
-
     rects.enter().append("rect")
             .attr("class", "bar");
-
     rects.attr("y", function (d) {
         return barChartYScale(d.id);
     })
@@ -707,12 +811,30 @@ function updateBarChart(yearStart, yearEnd) {
             })
             .on('mouseover', function (d) {
                 addHighlight(d.id);
+                toolTipDiv.transition()
+                        .duration(200)
+                        .style("opacity", .9)
+                        .style("display", "block");
+                toolTipDiv.style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY + 30) + "px");
+
+                toolTip.html(function (h) {
+                    if (mode === MODE_DEFAULT) {
+                        return "<strong>" + d.id + "</strong><br/>" + d3.round(getCurrentConnectivity(d, yearStart), 1) + "%";
+                    } else if (mode === MODE_DIFF) {
+                        return "<strong>" + d.id + "</strong><br/>" + d3.round(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart), 1) + "%";
+                    }
+                });
+
             })
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
+                toolTipDiv.transition()
+                        .duration(500)
+                        .style("display", "none")
+                        .style("opacity", 0);
             })
             .on('click', handleClick);
-
     if (mode === MODE_DEFAULT) {
         rects
                 .attr("x", 0)
@@ -743,13 +865,10 @@ function updatePlot() {
 // Line Plot
     linePlotXAxisG.call(linePlotXAxis);
     linePlotYAxisG.call(linePlotYAxis);
-
     var country = linePlotG.selectAll(".country")
             .data(selectedCountries);
-
     country.enter().append("path")
             .attr("class", "country");
-
     country.attr("id", function (d) {
         return d.id;
     })
@@ -765,19 +884,14 @@ function updatePlot() {
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
             });
-
     country.exit().remove();
-
     // diffLine Plot
     diffLinePlotXAxisG.call(diffLinePlotXAxis);
     diffLinePlotYAxisG.call(diffLinePlotYAxis);
-
     var countryDiff = diffLinePlotG.selectAll(".countryDiff")
             .data(selectedCountries);
-
     countryDiff.enter().append("path")
             .attr("class", "countryDiff");
-
     countryDiff.attr("id", function (d) {
         return d.id;
     })
@@ -793,18 +907,14 @@ function updatePlot() {
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
             });
-
     countryDiff.exit().remove();
-
     updateLegend();
-
 }
 
 function updateLegend() {
     var legend;
     var legendRectSize = 18;
     var legendSpacing = 4;
-
     if (selectedCountries.length > 0) {
         legend = legendG.selectAll('.legend')
                 .data(selectedCountries);
@@ -822,16 +932,13 @@ function updateLegend() {
             .attr('class', 'legend')
             .attr('transform', function (d, i) {
                 var height = legendRectSize + legendSpacing;
-                var offset = 0;//height * color.domain().length / 2;
+                var offset = 0; //height * color.domain().length / 2;
                 var horz = legendRectSize;
                 var vert = i * height - offset;
                 return 'translate(' + horz + ',' + vert + ')';
             });
-
     legendEnter.append('rect');
     legendEnter.append('text');
-
-
     legend.select('rect')
             .attr('width', legendRectSize)
             .attr('height', legendRectSize)
@@ -848,7 +955,6 @@ function updateLegend() {
                 return "#000";
                 //return color(d.id);
             });
-
     legend.select('text')
             .attr('x', legendRectSize + legendSpacing)
             .attr('y', legendRectSize - legendSpacing)
@@ -864,7 +970,6 @@ function updateLegend() {
                 }
 
             });
-
     legend.exit().remove();
 }
 
@@ -878,17 +983,20 @@ function getCurrentConnectivity(d, sliderYear) {
     })[0].Connectivity;
 }
 
+function getDataByID(id) {
+    return allCountries.filter(function (country) {
+        return country.id === id;
+    })[0];
+}
+
 function dataInit(data) {
     linePlotXScale.domain(d3.extent(data, function (d) {
         return d["Year"];
     }));
     linePlotYScale.domain([0, 100]);
-
-
     allCountries = d3.keys(data[0]).filter(function (key) {
         return key !== "Year";
     });
-
     allCountries = allCountries.map(function (country) {
         return {
             id: country,
@@ -897,7 +1005,6 @@ function dataInit(data) {
             })
         };
     });
-
     // Calculate diff Values
     allCountries.forEach(function (d) {
         d.diffValues = [];
@@ -908,7 +1015,6 @@ function dataInit(data) {
             };
         }
     });
-
     var max = d3.max(allCountries, function (d) {
         return d3.max(d.diffValues, function (d) {
             return d.diffConnectivity;
@@ -923,15 +1029,12 @@ function dataInit(data) {
         return d.Year;
     }));
     diffLinePlotYScale.domain([min, max]);
-
     allCountries.sort(function (a, b) {
         return d3.descending(a.id, b.id);
     });
 
-
     // SORTING
     d3.select("#cbSortValues").on("change", change);
-
     function change() {
         var yearStart, yearEnd, sortValue
         if (mode === MODE_DEFAULT) {
@@ -948,8 +1051,6 @@ function dataInit(data) {
             };
         }
 
-        //getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart)
-
         // Copy-on-write since tweens are evaluated after a delay.
         var y0 = barChartYScale.domain(allCountries.sort(this.checked
                 ? sortValue
@@ -960,23 +1061,19 @@ function dataInit(data) {
                     return d.id;
                 }))
                 .copy();
-
         barChartG.selectAll(".bar")
                 .sort(function (a, b) {
                     return y0(b.id) - y0(a.id);
                 });
-
         var transition = barChartG.transition().duration(250),
                 delay = function (d, i) {
                     return i * 5;
                 };
-
         transition.selectAll(".bar")
                 .delay(delay)
                 .attr("y", function (d) {
                     return y0(d.id);
                 });
-
         transition.select(".y.axis")
                 .call(barChartYAxis)
                 .selectAll("g")
@@ -1000,7 +1097,6 @@ function type(d) {
 queue()
         .defer(d3.csv, 'connectivity.csv')
         .await(uponLoad);
-
 function uponLoad(error, result) {
     if (error) {
         console.log("error: " + error);
@@ -1008,7 +1104,6 @@ function uponLoad(error, result) {
         result.forEach(type);
         dataInit(result);
         updateBarChart();
-
         //checkIDs();
     }
 
@@ -1019,7 +1114,6 @@ function checkIDs() {
     DatamapObjects.sort(function (a, b) {
         return d3.ascending(a.properties.name, b.properties.name);
     });
-
     DatamapObjects.forEach(
             function (d, i) {
                 console.log(d.properties.name + " -> " + d.id);
