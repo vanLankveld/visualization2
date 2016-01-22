@@ -42,6 +42,97 @@ var scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
 // Delete the DIV 
 document.body.removeChild(scrollDiv);
 
+// Variables for plots and such
+// Line Plot
+var linePlotOuterWIdth;
+var linePlotOuterHeight;
+var linePlotMargin;
+var linePlotInnerWidth;
+var linePlotInnerHeight;
+var outerLinePlotSvg = d3.select('#linePlot').append('svg')
+        .attr('width', linePlotOuterWIdth)
+        .attr('height', linePlotOuterHeight);
+var linePlotG;
+var linePlotXAxisG;
+var linePlotYAxisG;
+var linePlotXScale = d3.scale.linear().range([0, linePlotInnerWidth]);
+var linePlotYScale = d3.scale.linear().range([linePlotInnerHeight, 0]);
+var linePlotXAxis;
+var linePlotYAxis;
+
+var linePlotLine = d3.svg.line()
+        //.interpolate("basis")
+        .x(function (d) {
+            return linePlotXScale(d.Year);
+        })
+        .y(function (d) {
+            return linePlotYScale(d.Connectivity);
+        });
+// diffLine Plot
+var diffLinePlotOuterWIdth;
+var diffLinePlotOuterHeight;
+var diffLinePlotMargin;
+var diffLinePlotInnerWidth;
+var diffLinePlotInnerHeight;
+var outerDiffLinePlotSvg = d3.select('#diffLinePlot').append('svg')
+        .attr('width', diffLinePlotOuterWIdth)
+        .attr('height', diffLinePlotOuterHeight);
+var diffLinePlotG;
+var diffLinePlotXAxisG;
+var diffLinePlotYAxisG;
+var diffLinePlotXScale = d3.scale.linear().range([0, diffLinePlotInnerWidth]);
+var diffLinePlotYScale = d3.scale.linear().range([diffLinePlotInnerHeight, 0]);
+var diffLinePlotXAxis;
+var diffLinePlotYAxis;
+var diffLinePlotLine = d3.svg.line()
+        //.interpolate("basis")
+        .x(function (d) {
+            return diffLinePlotXScale(d.Year);
+        })
+        .y(function (d) {
+            return diffLinePlotYScale(d.diffConnectivity);
+        });
+
+// Bar chart
+var barChartMargin;
+var barChartOuterWidth;
+var barChartOuterHeight;
+var barChartInnerWidth;
+var barChartInnerHeight;
+var barChartYScale;
+var barChartXScale;
+var barChartXAxis;
+var barChartYAxis;
+var outerBarChartSvg = d3.select('#barChart').append('svg')
+        .attr('width', barChartOuterWidth)
+        .attr('height', barChartOuterHeight);
+var barChartG;
+var barChartXAxisSvg = d3.select('#barChartXAxis').append('svg')
+        .attr('width', $('#barChartXAxis').width())
+        .attr('height', Math.floor($('#barChartXAxis').height()));
+var barChartXAxisG;
+var barChartYAxisG;
+
+// Legend
+var legendSvg = d3.select('#divLegend').append('svg')
+        .attr('width', 250)
+        .attr('height', $('#divLegend').height());
+var legendG;
+var colorDomain = [];
+var color = d3.scale.category10(); // set the colour scale 
+
+// Tooltip
+var toolTipDiv = d3.select("body").append("div")
+        .attr("class", "datamaps-hoverover")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("display", "block");
+
+var toolTip = toolTipDiv.append("div")
+        .attr("class", "hoverinfo");
+
+///////////////////////////////// Funcions ////////////////////////////////////
+
 var waitForFinalEvent = (function () {
     var timers = {};
     return function (callback, ms, uniqueId) {
@@ -61,7 +152,8 @@ var highlightedCountry = null;
 
 $(document).ready(function () {
     mainView = $('#main-view');
-
+    initGs();
+    
     // Create slider
     setSlider();
 
@@ -561,119 +653,6 @@ function resetView() {
             .transition()
             .attr("transform", "translate(0)scale(1)");
 }
-
-// Line Plot
-var linePlotOuterWIdth = $('#linePlot').width();
-var linePlotOuterHeight = $('#linePlot').height();
-var linePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
-var linePlotInnerWidth = linePlotOuterWIdth - linePlotMargin.left - linePlotMargin.right;
-var linePlotInnerHeight = linePlotOuterHeight - linePlotMargin.top - linePlotMargin.bottom;
-var outerLinePlotSvg = d3.select('#linePlot').append('svg')
-        .attr('width', linePlotOuterWIdth)
-        .attr('height', linePlotOuterHeight);
-var linePlotG = outerLinePlotSvg.append("g")
-        .attr("transform", "translate(" + linePlotMargin.left + "," + linePlotMargin.top + ")");
-var linePlotXAxisG = linePlotG.append("g")
-        .attr("transform", "translate(0," + linePlotInnerHeight + ")");
-var linePlotYAxisG = linePlotG.append("g");
-var linePlotXScale = d3.scale.linear().range([0, linePlotInnerWidth]);
-var linePlotYScale = d3.scale.linear().range([linePlotInnerHeight, 0]);
-var linePlotXAxis = d3.svg.axis().scale(linePlotXScale).orient("bottom")
-        .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
-        .outerTickSize(0); // Turn off the marks at the end of the axis.
-var linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
-        .ticks(5)                   // Use approximately 5 ticks marks.
-        .outerTickSize(0); // Turn off the marks at the end of the axis.
-
-var linePlotLine = d3.svg.line()
-        //.interpolate("basis")
-        .x(function (d) {
-            return linePlotXScale(d.Year);
-        })
-        .y(function (d) {
-            return linePlotYScale(d.Connectivity);
-        });
-// diffLine Plot
-var diffLinePlotOuterWIdth = $('#diffLinePlot').width();
-var diffLinePlotOuterHeight = $('#diffLinePlot').height();
-var diffLinePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
-var diffLinePlotInnerWidth = diffLinePlotOuterWIdth - diffLinePlotMargin.left - diffLinePlotMargin.right;
-var diffLinePlotInnerHeight = diffLinePlotOuterHeight - diffLinePlotMargin.top - diffLinePlotMargin.bottom;
-var outerDiffLinePlotSvg = d3.select('#diffLinePlot').append('svg')
-        .attr('width', diffLinePlotOuterWIdth)
-        .attr('height', diffLinePlotOuterHeight);
-var diffLinePlotG = outerDiffLinePlotSvg.append("g")
-        .attr("transform", "translate(" + diffLinePlotMargin.left + "," + diffLinePlotMargin.top + ")");
-var diffLinePlotXAxisG = diffLinePlotG.append("g")
-        .attr("transform", "translate(0," + diffLinePlotInnerHeight + ")");
-var diffLinePlotYAxisG = diffLinePlotG.append("g");
-var diffLinePlotXScale = d3.scale.linear().range([0, diffLinePlotInnerWidth]);
-var diffLinePlotYScale = d3.scale.linear().range([diffLinePlotInnerHeight, 0]);
-var diffLinePlotXAxis = d3.svg.axis().scale(diffLinePlotXScale).orient("bottom")
-        .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
-        .outerTickSize(0); // Turn off the marks at the end of the axis.
-var diffLinePlotYAxis = d3.svg.axis().scale(diffLinePlotYScale).orient("left")
-        .ticks(5)                   // Use approximately 5 ticks marks.
-        .outerTickSize(0); // Turn off the marks at the end of the axis.
-
-var diffLinePlotLine = d3.svg.line()
-        //.interpolate("basis")
-        .x(function (d) {
-            return diffLinePlotXScale(d.Year);
-        })
-        .y(function (d) {
-            return diffLinePlotYScale(d.diffConnectivity);
-        });
-
-// Bar chart
-var barChartMargin = {left: 100, top: 50, right: 50, bottom: 0};
-var barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
-var barChartOuterHeight = 4 * $('#barChart').height();
-var barChartInnerWidth = barChartOuterWidth - barChartMargin.left - barChartMargin.right;
-var barChartInnerHeight = barChartOuterHeight - barChartMargin.top - barChartMargin.bottom;
-var barChartYScale = d3.scale.ordinal()
-        .rangeBands([barChartInnerHeight, 0], 0.1);
-var barChartXScale = d3.scale.linear()
-        .range([0, barChartInnerWidth]);
-var barChartXAxis = d3.svg.axis()
-        .scale(barChartXScale)
-        .orient("bottom");
-var barChartYAxis = d3.svg.axis()
-        .scale(barChartYScale)
-        .orient("left");
-var outerBarChartSvg = d3.select('#barChart').append('svg')
-        .attr('width', barChartOuterWidth)
-        .attr('height', barChartOuterHeight);
-var barChartG = outerBarChartSvg.append("g")
-        .attr("transform", "translate(" + barChartMargin.left + "," + barChartMargin.top + ")");
-var barChartXAxisSvg = d3.select('#barChartXAxis').append('svg')
-        .attr('width', $('#barChartXAxis').width())
-        .attr('height', Math.floor($('#barChartXAxis').height()));
-var barChartXAxisG = barChartXAxisSvg
-        .append("g")
-        .attr("transform", "translate(" + barChartMargin.left + ",0)")
-        .attr("class", "x axis");
-var barChartYAxisG = barChartG.append("g")
-        .attr("class", "y axis");
-
-// Legend
-var legendSvg = d3.select('#divLegend').append('svg')
-        .attr('width', 250)
-        .attr('height', $('#divLegend').height());
-var legendG = legendSvg
-        .append('g');
-var colorDomain = [];
-var color = d3.scale.category10(); // set the colour scale 
-
-// Tooltip
-var toolTipDiv = d3.select("body").append("div")
-        .attr("class", "datamaps-hoverover")
-        .style("opacity", 0)
-        .style("position", "absolute")
-        .style("display", "block");
-
-var toolTip = toolTipDiv.append("div")
-        .attr("class", "hoverinfo");
 
 function initGs() {
     // Line Plot
