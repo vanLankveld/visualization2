@@ -153,6 +153,11 @@ h1 {
     pointer-events: all;
 }
 
+.focus line {
+    stroke: purple;
+    shape-rendering: crispEdges;
+}
+
 .div-buttons {
     display: inline-block;
 }

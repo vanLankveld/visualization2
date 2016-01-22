@@ -94,7 +94,7 @@ var diffLinePlotLine = d3.svg.line()
         });
 
 // Focus
-var focus;
+//var focus;
 
 // Bar chart
 var barChartMargin;
@@ -715,16 +715,23 @@ function initGs() {
             });
 
     // Focus
-    focus = linePlotG.append("g")
-            .attr("class", "focus")
-            .style("display", "none");
-
-    focus.append("circle")
-            .attr("r", 4.5);
-
-    focus.append("text")
-            .attr("x", 9)
-            .attr("dy", ".35em");
+    /*
+     focus = linePlotG.append("g")
+     .attr("class", "focus")
+     .style("display", "none");
+     
+     focus.append("line")
+     .attr("class", "x-focus")
+     .attr("y1", linePlotYScale(0) - 6)
+     .attr("y2", linePlotYScale(0) + 6);
+     
+     focus.append("circle")
+     .attr("r", 4.5);
+     
+     focus.append("text")
+     .attr("x", 9)
+     .attr("dy", ".35em");
+     */
 
 // Legend
 
@@ -875,7 +882,42 @@ function updatePlot() {
                 removeHighlight(d.id);
             });
     country.exit().remove();
+// Focus
+    var focus = linePlotG.selectAll(".focus")
+            .data(selectedCountries);
+    var focusEnter = focus.enter()
+            .append('g')
+            .attr("class", ".focus")
+            .style("display", "none");
+    focusEnter.append("circle")
+            .attr("r", 4);
+    focusEnter.append("text")
+            .attr("x", 9)
+            .attr("dy", ".35em");
+    focus.select('circle')
+            .style("fill", function (d, i) {
+                return color(d.id);
+            });
 
+    focus.exit().remove();
+
+    /*
+     focus = linePlotG.append("g")
+     .attr("class", "focus")
+     .style("display", "none");
+     
+     focus.append("line")
+     .attr("class", "x-focus")
+     .attr("y1", linePlotYScale(0) - 6)
+     .attr("y2", linePlotYScale(0) + 6);
+     
+     focus.append("circle")
+     .attr("r", 4.5);
+     
+     focus.append("text")
+     .attr("x", 9)
+     .attr("dy", ".35em");
+     */
 
     linePlotG.append("rect")
             .attr("class", "overlay")
@@ -888,21 +930,26 @@ function updatePlot() {
                 focus.style("display", "none");
             })
             .on("mousemove", mousemove);
-
     function mousemove() {
         var bisector = d3.bisector(function (d, x) {
             return d3.ascending(d.Year, x);
         }).left;
         var x0 = linePlotXScale.invert(d3.mouse(this)[0]),
-                i = bisector(selectedCountries[0].values, x0);
-        d0 = selectedCountries[0].values[i - 1],
+                i = bisector(selectedCountries[0].values, x0),
+                d0 = selectedCountries[0].values[i - 1],
                 d1 = selectedCountries[0].values[i],
-                d = x0 - d0.Year > d1.Year - x0 ? d1 : d0;
+                ii = x0 - d0.Year > d1.Year - x0 ? i : i - 1;
 
-        console.log(d);
+        focus.select("circle").attr("transform", function (d) {
+            return "translate(" + linePlotXScale(d.values[ii].Year) + "," + linePlotYScale(d.values[ii].Connectivity) + ")";
+        });
+        focus.select("text").attr("transform", function (d) {
+            return "translate(" + linePlotXScale(d.values[ii].Year) + "," + linePlotYScale(d.values[ii].Connectivity) + ")";
+        }).text(function (d) {
+            return d3.round(d.values[ii].Connectivity, 1) + "%";
+        });
 
-        focus.attr("transform", "translate(" + linePlotXScale(d.Year) + "," + linePlotYScale(d.Connectivity) + ")");
-        focus.select("text").text(d.Connectivity);
+        //focus.select(".x-focus").attr("transform", "translate(" + linePlotXScale(d.Year) + ",0)");
     }
 
 
@@ -1039,7 +1086,6 @@ function dataInit(data) {
     allCountriesSorted = allCountries.slice().sort(function (a, b) {
         return d3.ascending(a.id, b.id);
     });
-
     var max = d3.max(allCountries, function (d) {
         return d3.max(d.diffValues, function (d) {
             return d.diffConnectivity;
@@ -1057,7 +1103,6 @@ function dataInit(data) {
     allCountries.sort(function (a, b) {
         return d3.descending(a.id, b.id);
     });
-
     // SORTING
     d3.select("#cbSortValues").on("change", change);
     function change() {
@@ -1149,16 +1194,13 @@ function checkIDs() {
 function tryBisect() {
 
     var data = allCountries;
-
     data.sort(function (a, b) {
         return d3.ascending(a.id, b.id);
     });
     console.log(data);
-
     var bisector = d3.bisector(function (a, b) {
         return d3.ascending(a.id, b);
     }).left;
-
     var toFind = "NLD";
     console.log("Found " + toFind + " at index: " + bisector(data, toFind));
     return;
