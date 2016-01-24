@@ -23,8 +23,8 @@ var noDataFill = {
 };
 
 var defaultColorBins = d3.scale.threshold()
-        .domain([20, 40, 60, 80, 100])
-        .range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c", "#000000"]);
+        .domain([20, 40, 60, 80])
+        .range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]);
 
 var diffColorBins = d3.scale.threshold()
         .domain([0, 20, 40, 60])
@@ -894,30 +894,16 @@ function updatePlot() {
     focusEnter.append("text")
             .attr("x", 9)
             .attr("dy", ".35em");
+    focusEnter.append("line")
+            .attr("class", "xFocus")
+            .attr("y1", linePlotYScale(linePlotYScale.domain()[0]) - 6)
+            .attr("y2", linePlotYScale(linePlotYScale.domain()[0]) + 6);
     focus.select('circle')
             .style("fill", function (d, i) {
                 return color(d.id);
             });
 
     focus.exit().remove();
-
-    /*
-     focus = linePlotG.append("g")
-     .attr("class", "focus")
-     .style("display", "none");
-     
-     focus.append("line")
-     .attr("class", "x-focus")
-     .attr("y1", linePlotYScale(0) - 6)
-     .attr("y2", linePlotYScale(0) + 6);
-     
-     focus.append("circle")
-     .attr("r", 4.5);
-     
-     focus.append("text")
-     .attr("x", 9)
-     .attr("dy", ".35em");
-     */
 
     linePlotG.append("rect")
             .attr("class", "overlay")
@@ -949,7 +935,10 @@ function updatePlot() {
             return d3.round(d.values[ii].Connectivity, 1) + "%";
         });
 
-        //focus.select(".x-focus").attr("transform", "translate(" + linePlotXScale(d.Year) + ",0)");
+        focus.select("line").attr("transform", function (d) {
+            return "translate(" + linePlotXScale(d.values[ii].Year) + ",0)";
+        });
+
     }
 
 
@@ -976,6 +965,66 @@ function updatePlot() {
                 removeHighlight(d.id);
             });
     countryDiff.exit().remove();
+
+    // Focus
+    var focusDiff = diffLinePlotG.selectAll(".focus")
+            .data(selectedCountries);
+    var focusDiffEnter = focusDiff.enter()
+            .append('g')
+            .attr("class", ".focus")
+            .style("display", "none");
+    focusDiffEnter.append("circle")
+            .attr("r", 4);
+    focusDiffEnter.append("text")
+            .attr("x", 9)
+            .attr("dy", ".35em");
+    focusDiffEnter.append("line")
+            .attr("class", "xFocus")
+            .attr("y1", diffLinePlotYScale(diffLinePlotYScale.domain()[0]) - 6)
+            .attr("y2", diffLinePlotYScale(diffLinePlotYScale.domain()[0]) + 6);
+    focusDiff.select('circle')
+            .style("fill", function (d, i) {
+                return color(d.id);
+            });
+
+    focusDiff.exit().remove();
+
+    diffLinePlotG.append("rect")
+            .attr("class", "overlay")
+            .attr("width", diffLinePlotInnerWidth)
+            .attr("height", diffLinePlotInnerHeight)
+            .on("mouseover", function () {
+                focusDiff.style("display", null);
+            })
+            .on("mouseout", function () {
+                focusDiff.style("display", "none");
+            })
+            .on("mousemove", diffMousemove);
+    function diffMousemove() {
+        var bisector = d3.bisector(function (d, x) {
+            return d3.ascending(d.Year, x);
+        }).left;
+        var x0 = diffLinePlotXScale.invert(d3.mouse(this)[0]),
+                i = bisector(selectedCountries[0].diffValues, x0),
+                d0 = selectedCountries[0].diffValues[i - 1],
+                d1 = selectedCountries[0].diffValues[i],
+                ii = x0 - d0.Year > d1.Year - x0 ? i : i - 1;
+
+        focusDiff.select("circle").attr("transform", function (d) {
+            return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + "," + diffLinePlotYScale(d.diffValues[ii].diffConnectivity) + ")";
+        });
+        focusDiff.select("text").attr("transform", function (d) {
+            return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + "," + diffLinePlotYScale(d.diffValues[ii].diffConnectivity) + ")";
+        }).text(function (d) {
+            return d3.round(d.diffValues[ii].diffConnectivity, 1) + "%";
+        });
+
+        focusDiff.select("line").attr("transform", function (d) {
+            return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + ",0)";
+        });
+
+    }
+
     updateLegend();
 }
 
@@ -993,7 +1042,6 @@ function updateLegend() {
         legend = legendG.selectAll('.legend')
                 .data(diffColorBins.range());
     }
-
 
     var legendEnter = legend.enter()
             .append('g')
@@ -1014,9 +1062,9 @@ function updateLegend() {
                 if (selectedCountries.length > 0) {
                     return color(d.id);
                 } else if (mode === MODE_DEFAULT) {
-                    return defaultColorBins.range()[i];
+                    return d;
                 } else if (mode === MODE_DIFF) {
-                    return diffColorBins.range()[i];
+                    return d;
                 }
             })
             .style("stroke", function (d, i) {
@@ -1032,9 +1080,27 @@ function updateLegend() {
                         return country.id === selectedCountries[i].id;
                     })[0].properties.name;
                 } else if (mode === MODE_DEFAULT) {
-                    return defaultColorBins.invertExtent(defaultColorBins.range()[i]);
+                    var text,
+                            extent = defaultColorBins.invertExtent(d);
+                    if (extent[0] === undefined) {
+                        text = "< " + extent[1] + "%";
+                    } else if (extent[1] === undefined) {
+                        text = "> " + extent[0] + "%";
+                    } else {
+                        text = extent[0] + "% - " + extent[1] + "%";
+                    }
+                    return text;
                 } else if (mode === MODE_DIFF) {
-                    return diffColorBins.invertExtent(diffColorBins.range()[i]);
+                    var text,
+                            extent = diffColorBins.invertExtent(d);
+                    if (extent[0] === undefined) {
+                        text = "< " + extent[1] + "%";
+                    } else if (extent[1] === undefined) {
+                        text = "> " + extent[0] + "%";
+                    } else {
+                        text = extent[0] + "% - " + extent[1] + "%";
+                    }
+                    return text;
                 }
 
             });

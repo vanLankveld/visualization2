@@ -12,10 +12,6 @@ body{
     margin: 0;
 }
 
-div.tooltip {	
-    position: absolute;					
-}
-
 h1 {
     margin: 0px;
     padding: 10px;
@@ -153,7 +149,7 @@ h1 {
     pointer-events: all;
 }
 
-.focus line {
+.xFocus {
     stroke: purple;
     shape-rendering: crispEdges;
 }
