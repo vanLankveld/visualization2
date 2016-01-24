@@ -149,6 +149,10 @@ h1 {
     pointer-events: all;
 }
 
+.tick line {
+    stroke: #000;
+}
+
 .xFocus {
     stroke: purple;
     shape-rendering: crispEdges;

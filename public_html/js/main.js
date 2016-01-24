@@ -671,8 +671,12 @@ function initGs() {
             .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
             .outerTickSize(0); // Turn off the marks at the end of the axis.
     linePlotYAxis = d3.svg.axis().scale(linePlotYScale).orient("left")
+            .tickFormat(function (d) {
+                return d + "%";
+            })
             .ticks(5)                   // Use approximately 5 ticks marks.
             .outerTickSize(0); // Turn off the marks at the end of the axis.
+
 
     linePlotLine = d3.svg.line()
             //.interpolate("basis")
@@ -702,6 +706,9 @@ function initGs() {
             .tickFormat(d3.format("04d")) // Use intelligent abbreviations, e.g. 5M for 5 Million
             .outerTickSize(0); // Turn off the marks at the end of the axis.
     diffLinePlotYAxis = d3.svg.axis().scale(diffLinePlotYScale).orient("left")
+            .tickFormat(function (d) {
+                return d + "%";
+            })
             .ticks(5)                   // Use approximately 5 ticks marks.
             .outerTickSize(0); // Turn off the marks at the end of the axis.
 
@@ -714,28 +721,7 @@ function initGs() {
                 return diffLinePlotYScale(d.diffConnectivity);
             });
 
-    // Focus
-    /*
-     focus = linePlotG.append("g")
-     .attr("class", "focus")
-     .style("display", "none");
-     
-     focus.append("line")
-     .attr("class", "x-focus")
-     .attr("y1", linePlotYScale(0) - 6)
-     .attr("y2", linePlotYScale(0) + 6);
-     
-     focus.append("circle")
-     .attr("r", 4.5);
-     
-     focus.append("text")
-     .attr("x", 9)
-     .attr("dy", ".35em");
-     */
-
 // Legend
-
-
     legendSvg
             .attr('width', $('#divLegend').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
             .attr('height', $('#divLegend').height());//-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
@@ -743,7 +729,7 @@ function initGs() {
             .append('g');
 
 // Bar chart
-    barChartMargin = {left: 100, top: 50, right: 50, bottom: 0};
+    barChartMargin = {left: 100, top: 5, right: 50, bottom: 0};
     barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
     barChartOuterHeight = 4 * $('#barChart').height();
     barChartInnerWidth = barChartOuterWidth - barChartMargin.left - barChartMargin.right;
@@ -754,6 +740,10 @@ function initGs() {
             .range([0, barChartInnerWidth]);
     barChartXAxis = d3.svg.axis()
             .scale(barChartXScale)
+            .ticks(5)
+            .tickFormat(function (d) {
+                return d + "%";
+            })
             .orient("bottom");
     barChartYAxis = d3.svg.axis()
             .scale(barChartYScale)
