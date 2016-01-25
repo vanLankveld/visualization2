@@ -97,6 +97,9 @@ var diffLinePlotLine = d3.svg.line()
 //var focus;
 
 // Bar chart
+var barChartTitleSvg = d3.select('#titleSvgDiv').append('svg')
+        .attr('width', barChartOuterWidth)
+        .attr('height', barChartOuterHeight);
 var barChartMargin;
 var barChartOuterWidth;
 var barChartOuterHeight;
@@ -214,7 +217,9 @@ function setButtons() {
     $("#btResetView").button();
     $("#btClearSelection").button();
     $("#cbShowLegend").button();
-    $("#cbSortValues").button();
+    $("#cbSortValues").button({
+        position: {my: "right top", at: "right top", of: $('#barChartTitle')} // not working?
+    });
 
     $("#cbShowLegend").change(function () {
         var checked = $("#cbShowLegend").prop("checked");
@@ -748,6 +753,9 @@ function initGs() {
     barChartYAxis = d3.svg.axis()
             .scale(barChartYScale)
             .orient("left");
+    barChartTitleSvg
+            .attr('width', barChartOuterWidth)
+            .attr('height', $('#barChartTitle').height() / 2);
     outerBarChartSvg
             .attr('width', barChartOuterWidth)
             .attr('height', barChartOuterHeight);
@@ -765,6 +773,23 @@ function initGs() {
 }
 
 function updateBarChart(yearStart, yearEnd) {
+    var title = barChartTitleSvg.selectAll(".title")
+            .data([1]);
+
+    title.enter().append("text")
+            .attr("class", "title");
+    title
+            .attr("x", (barChartOuterWidth / 2))
+            .attr("y", ($('#barChartTitle').height() / 3))
+            .attr("text-anchor", "middle")
+            .text(function (d) {
+                if (mode === MODE_DEFAULT) {
+                    return "Internet connectivity at selected year";
+                } else {
+                    return "Change in internet connectivity between selected years";
+                }
+            });
+
     if (mode === MODE_DEFAULT) {
         if (yearStart === undefined) {
             yearStart = $('#slider').slider("value");
@@ -852,6 +877,17 @@ function updatePlot() {
 // Line Plot
     linePlotXAxisG.call(linePlotXAxis);
     linePlotYAxisG.call(linePlotYAxis);
+
+    var title = linePlotG.selectAll(".title")
+            .data([1]);
+
+    title.enter().append("text")
+            .attr("class", "title")
+            .attr("x", (linePlotInnerWidth / 2))
+            .attr("y", 0 - (linePlotMargin.top / 2))
+            .attr("text-anchor", "middle")
+            .text("Internet connectivity vs years");
+
     var country = linePlotG.selectAll(".country")
             .data(selectedCountries);
     country.enter().append("path")
@@ -935,6 +971,17 @@ function updatePlot() {
     // diffLine Plot
     diffLinePlotXAxisG.call(diffLinePlotXAxis);
     diffLinePlotYAxisG.call(diffLinePlotYAxis);
+
+    var titleDiff = diffLinePlotG.selectAll(".title")
+            .data([1]);
+
+    titleDiff.enter().append("text")
+            .attr("class", "title")
+            .attr("x", (diffLinePlotInnerWidth / 2))
+            .attr("y", 0 - (diffLinePlotMargin.top / 2))
+            .attr("text-anchor", "middle")
+            .text("Internet connectivity difference vs years");
+
     var countryDiff = diffLinePlotG.selectAll(".countryDiff")
             .data(selectedCountries);
     countryDiff.enter().append("path")
