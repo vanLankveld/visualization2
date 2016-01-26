@@ -428,12 +428,16 @@ function updateSelection() {
         $('#barChartTitle').hide();
         $("#barChart").hide();
         $('#barChartXAxis').hide();
+        $('#divMode').buttonset("option","disabled",true);
+        $('#slider').slider("option","disabled",true);
     } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
         $("#linePlot").hide();
         $("#diffLinePlot").hide();
         $('#barChartTitle').show();
         $("#barChart").show();
         $('#barChartXAxis').show();
+        $('#divMode').buttonset("option","disabled",false);
+        $('#slider').slider("option","disabled",false);
     }
 
     if (selectedCountries.length > 0) {
