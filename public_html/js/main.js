@@ -113,6 +113,10 @@ var legendSvg = d3.select('#divLegend').append('svg')
         .attr('width', 250)
         .attr('height', $('#divLegend').height());
 var legendG;
+var histogramSvg = d3.select('#divHistogram').append('svg')
+        .attr('width', $('#divHistogram').width())
+        .attr('height', $('#divHistogram').height());
+var histogramG;
 var colorDomain = [];
 var color = d3.scale.category10(); // set the colour scale 
 
@@ -164,6 +168,7 @@ $(document).ready(function () {
         }, 500, (afterResizeId++) + "");
     });
     setLegend();
+    setHistogram();
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
@@ -202,6 +207,15 @@ function setButtons() {
         }
         else {
             $("#divLegend").dialog("close");
+        }
+    });
+    $("#cbShowHistogram").change(function () {
+        var checked = $("#cbShowHistogram").prop("checked");
+        if (checked) {
+            $("#divHistogram").dialog("open");
+        }
+        else {
+            $("#divHistogram").dialog("close");
         }
     });
     $("#btResetView").click(function () {
@@ -274,6 +288,27 @@ function setLegend() {
         },
         resize: function (event, ui) {
             d3.select("#divLegend")
+                    .attr("width", ui.size.width)
+                    .attr("height", ui.size.height);
+        }
+    });
+}
+
+function setHistogram() {
+    var show = $('#cbShowHistogram').prop('checked');
+    $("#divHistogram").dialog({
+        autoOpen: false,
+        position: {my: "bottom", at: "bottom", of: mainView},
+        width: 300,
+        maxWidth:300,
+        height: 300,
+        maxHeight:300,
+        close: function () {
+            $("#cbShowHistogram").prop("checked", false);
+            $("#cbShowHistogram").button("refresh");
+        },
+        resize: function (event, ui) {
+            d3.select("#divHistogram")
                     .attr("width", ui.size.width)
                     .attr("height", ui.size.height);
         }
@@ -681,6 +716,13 @@ function initGs() {
             .attr('width', $('#divLegend').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
             .attr('height', $('#divLegend').height()); //-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
     legendG = legendSvg
+            .append('g');
+    
+//Histogram
+    histogramSvg
+            .attr('width', $('#divHistogram').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
+            .attr('height', $('#divHistogram').height()); //-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
+    histogramG = histogramSvg
             .append('g');
 // Bar chart
     barChartMargin = {left: 100, top: 5, right: 50, bottom: 0};

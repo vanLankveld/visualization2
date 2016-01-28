@@ -159,6 +159,10 @@ h1 {
     overflow: hidden;
 }
 
+#divHistogram{
+    overflow: hidden;
+}
+
 .overlay {
     fill: none;
     pointer-events: all;
