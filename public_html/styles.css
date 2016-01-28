@@ -77,7 +77,7 @@ h1 {
 #barChartTitle{
     position: absolute;
     top:0;
-    bottom:85%;
+    bottom:90%;
     left:0;
     right:0;
     margin: 10px 10px 0px 10px;
@@ -85,9 +85,19 @@ h1 {
     background:#fff;
 }
 
+#titleSvgDiv{
+    width: 80%;
+    float: left;
+}
+
+.sortValueContainer{
+    max-width: 20%;
+    float: right;
+}
+
 #barChart{
     position:absolute;
-    top:15%;
+    top:10%;
     bottom:5%;
     left:0;
     right:0;

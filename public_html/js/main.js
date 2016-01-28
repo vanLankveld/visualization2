@@ -62,6 +62,9 @@ var linePlotYAxis;
 
 var linePlotLine = d3.svg.line()
         //.interpolate("basis")
+        .defined(function (d) {
+            return d;
+        })
         .x(function (d) {
             return linePlotXScale(d.Year);
         })
@@ -428,16 +431,16 @@ function updateSelection() {
         $('#barChartTitle').hide();
         $("#barChart").hide();
         $('#barChartXAxis').hide();
-        $('#divMode').buttonset("option","disabled",true);
-        $('#slider').slider("option","disabled",true);
+        $('#divMode').buttonset("option", "disabled", true);
+        $('#slider').slider("option", "disabled", true);
     } else if (selectedCountries.length === 0 && barChart.style("display") === "none") {
         $("#linePlot").hide();
         $("#diffLinePlot").hide();
         $('#barChartTitle').show();
         $("#barChart").show();
         $('#barChartXAxis').show();
-        $('#divMode').buttonset("option","disabled",false);
-        $('#slider').slider("option","disabled",false);
+        $('#divMode').buttonset("option", "disabled", false);
+        $('#slider').slider("option", "disabled", false);
     }
 
     if (selectedCountries.length > 0) {
@@ -762,8 +765,8 @@ function initGs() {
             .scale(barChartYScale)
             .orient("left");
     barChartTitleSvg
-            .attr('width', barChartOuterWidth)
-            .attr('height', $('#barChartTitle').height() / 2);
+            .attr('width', barChartOuterWidth * 0.8)
+            .attr('height', $('#barChartTitle').height());
     outerBarChartSvg
             .attr('width', barChartOuterWidth)
             .attr('height', barChartOuterHeight);
@@ -788,7 +791,7 @@ function updateBarChart(yearStart, yearEnd) {
             .attr("class", "title");
     title
             .attr("x", (barChartOuterWidth / 2))
-            .attr("y", ($('#barChartTitle').height() / 3))
+            .attr("y", ($('#barChartTitle').height() / 2))
             .attr("text-anchor", "middle")
             .text(function (d) {
                 if (mode === MODE_DEFAULT) {
@@ -875,6 +878,18 @@ function updateBarChart(yearStart, yearEnd) {
                     return diffColorBins(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart));
                 });
     }
+
+    var zeroBarChart = barChartG.selectAll(".zeroBar").data(mode === MODE_DIFF ? [1] : []);
+    zeroBarChart.enter().append("line")
+            .attr("class", "zeroBar");
+    zeroBarChart
+            .attr("x1", barChartXScale(0))
+            .attr("y1", d3.extent(barChartYScale.range())[0])
+            .attr("x2", barChartXScale(0))
+            .attr("y2", d3.extent(barChartYScale.range())[1])
+            .attr("stroke-width", 1)
+            .attr("stroke", "#ddd");
+    zeroBarChart.exit().remove();
 
     updateLegend();
 }
@@ -979,6 +994,17 @@ function updatePlot() {
     // diffLine Plot
     diffLinePlotXAxisG.call(diffLinePlotXAxis);
     diffLinePlotYAxisG.call(diffLinePlotYAxis);
+
+    var zeroDiffPlot = diffLinePlotG.selectAll(".zeroDiff").data([1]);
+    zeroDiffPlot.enter().append("line")
+            .attr("class", "zeroDiff");
+    zeroDiffPlot
+            .attr("x1", diffLinePlotXScale.range()[0])
+            .attr("y1", diffLinePlotYScale(0))
+            .attr("x2", diffLinePlotXScale.range()[1])
+            .attr("y2", diffLinePlotYScale(0))
+            .attr("stroke-width", 1)
+            .attr("stroke", "#ddd");
 
     var titleDiff = diffLinePlotG.selectAll(".title")
             .data([1]);
