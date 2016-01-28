@@ -547,6 +547,10 @@ function getSingleCountryColor(country, year) {
 }
 
 function getSingleCountryDiffColor(country, yearStart, yearEnd) {
+    var selectedIndex = selectedCountryIndex(country);
+    if (selectedIndex !== -1) {
+        return color(country);
+    }
     var dValue = getDiffForCountry(country, yearStart, yearEnd);
     return getColor(dValue, "diff");
 }
