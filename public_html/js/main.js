@@ -1,47 +1,36 @@
 var MODE_DEFAULT = "default";
 var MODE_DIFF = "diff";
-
 var mainView;
 var worldMap = null;
 var csv;
 var afterResizeId = 0;
-
 var translatedX = 0;
 var translatedY = 0;
 var scale = 1;
-
 var dragStartX = -1;
 var dragStartY = -1;
-
 var mode = MODE_DEFAULT;
-
 var zoom;
-
 var noDataFill = {
     selection: "#bbbbbb",
     noData: "#dddddd"
 };
-
 var defaultColorBins = d3.scale.threshold()
         .domain([20, 40, 60, 80])
         .range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]);
-
 var diffColorBins = d3.scale.threshold()
         .domain([0, 20, 40, 60])
         .range(["#fcae91", "#edf8e9", "#bae4b3", "#74c476", "#238b45"]);
-
 // Create the measurement node for scroll-bar measurement
 var scrollDiv = document.createElement("div");
 scrollDiv.className = "scrollbar-measure";
 document.body.appendChild(scrollDiv);
-
 // Get the scrollbar width
 var scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
 //console.warn(scrollbarWidth); // Mac:  15
 
 // Delete the DIV 
 document.body.removeChild(scrollDiv);
-
 // Variables for plots and such
 // Line Plot
 var linePlotOuterWIdth;
@@ -59,11 +48,10 @@ var linePlotXScale = d3.scale.linear().range([0, linePlotInnerWidth]);
 var linePlotYScale = d3.scale.linear().range([linePlotInnerHeight, 0]);
 var linePlotXAxis;
 var linePlotYAxis;
-
 var linePlotLine = d3.svg.line()
         //.interpolate("basis")
         .defined(function (d) {
-            return d;
+            return d.Connectivity !== null;
         })
         .x(function (d) {
             return linePlotXScale(d.Year);
@@ -89,16 +77,15 @@ var diffLinePlotXAxis;
 var diffLinePlotYAxis;
 var diffLinePlotLine = d3.svg.line()
         //.interpolate("basis")
+        .defined(function (d) {
+            return d.diffConnectivity !== null;
+        })
         .x(function (d) {
             return diffLinePlotXScale(d.Year);
         })
         .y(function (d) {
             return diffLinePlotYScale(d.diffConnectivity);
         });
-
-// Focus
-//var focus;
-
 // Bar chart
 var barChartTitleSvg = d3.select('#titleSvgDiv').append('svg')
         .attr('width', barChartOuterWidth)
@@ -121,7 +108,6 @@ var barChartXAxisSvg = d3.select('#barChartXAxis').append('svg')
         .attr('height', Math.floor($('#barChartXAxis').height()));
 var barChartXAxisG;
 var barChartYAxisG;
-
 // Legend
 var legendSvg = d3.select('#divLegend').append('svg')
         .attr('width', 250)
@@ -136,10 +122,8 @@ var toolTipDiv = d3.select("body").append("div")
         .style("opacity", 0)
         .style("position", "absolute")
         .style("display", "block");
-
 var toolTip = toolTipDiv.append("div")
         .attr("class", "hoverinfo");
-
 ///////////////////////////////// Funcions ////////////////////////////////////
 
 var waitForFinalEvent = (function () {
@@ -154,27 +138,21 @@ var waitForFinalEvent = (function () {
         timers[uniqueId] = setTimeout(callback, ms);
     };
 })();
-
 var allCountries = null;
 var allCountriesSorted = null;
 var selectedCountries = [];
 var highlightedCountry = null;
-
 $(document).ready(function () {
     mainView = $('#main-view');
     initGs();
-
     // Create slider
     setSlider();
-
     $.get('connectivity.csv', function (data) {
         var fileContents = data;
         csv = d3.csv.parse(fileContents);
         renderWorldMap(true);
     });
-
     setButtons();
-
     $(window).resize(function () {
         renderWorldMap(false);
         waitForFinalEvent(function () {
@@ -185,9 +163,7 @@ $(document).ready(function () {
             updatePlot();
         }, 500, (afterResizeId++) + "");
     });
-
     setLegend();
-
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
@@ -195,19 +171,15 @@ $(document).ready(function () {
             addHighlight(target);
         }
     });
-
     d3.selectAll('#main-view').on('mouseout', function () {
         if (d3.event.target.tagName === "path") {
             var target = d3.select(d3.event.target).data()[0].id;
             removeHighlight(target);
         }
     });
-
 });
-
 function setButtons() {
     $("#divMode").buttonset();
-
     $("#divMode input").change(function () {
         mode = $(this).val();
         setSlider();
@@ -216,14 +188,12 @@ function setButtons() {
         $("#cbSortValues").button("refresh");
         updateBarChart();
     });
-
     $("#btResetView").button();
     $("#btClearSelection").button();
     $("#cbShowLegend").button();
     $("#cbSortValues").button({
         position: {my: "right top", at: "right top", of: $('#barChartTitle')} // not working?
     });
-
     $("#cbShowLegend").change(function () {
         var checked = $("#cbShowLegend").prop("checked");
         if (checked) {
@@ -233,11 +203,9 @@ function setButtons() {
             $("#divLegend").dialog("close");
         }
     });
-
     $("#btResetView").click(function () {
         resetView();
     });
-
     $("#btClearSelection").click(function () {
         selectedCountries = [];
         updateSelection();
@@ -276,7 +244,6 @@ function setSlider() {
             $("#cbSortValues").button("refresh");
         }
     });
-
     if (mode === MODE_DIFF) {
 
         var value1 = parseInt(value);
@@ -297,7 +264,6 @@ function setSlider() {
 
 function setLegend() {
     var show = $('#cbShowLegend').prop('checked');
-
     $("#divLegend").dialog({
         autoOpen: show,
         position: {my: "left bottom", at: "left bottom", of: mainView},
@@ -324,13 +290,11 @@ function redrawColors() {
 }
 
 function addHighlight(id) {
-    // Set highlighted Country
+// Set highlighted Country
     highlightedCountry = id;
-
     // Highlight dataMap
     d3.select(".datamaps-subunit." + id).style("stroke-width", "5px");
     d3.select(".datamaps-subunit." + id).style("stroke", "#000");
-
     // Highlight LinePlot and diffPlot
     d3.selectAll("#" + highlightedCountry).classed("highlighted", true);
 }
@@ -339,19 +303,13 @@ function removeHighlight(id) {
 
     if (highlightedCountry != null) {
 
-        // unSet LinePlot highlight
+// unSet LinePlot highlight
         d3.selectAll("#" + highlightedCountry).classed("highlighted", false);
-
         // unSet dataMap highlight
         var oldAttributes = d3.select(".datamaps-subunit." + highlightedCountry).attr("data-previousAttributes");
-
         d3.select(".datamaps-subunit." + highlightedCountry).style(oldAttributes);
-
-
         d3.select(".datamaps-subunit." + highlightedCountry).style("stroke-width", "1px");
         d3.select(".datamaps-subunit." + highlightedCountry).style("stroke", "#fff");
-
-
         var oldColor;
         if (mode === MODE_DEFAULT) {
             oldColor = getSingleCountryColor(highlightedCountry, parseInt($("#slider").slider("value")));
@@ -360,10 +318,8 @@ function removeHighlight(id) {
         }
 
         d3.select(".datamaps-subunit." + highlightedCountry).style('fill', oldColor);
-
         // unSet global variable
         highlightedCountry = null;
-
     }
 
 }
@@ -667,7 +623,7 @@ function resetView() {
 }
 
 function initGs() {
-    // Line Plot
+// Line Plot
     linePlotOuterWIdth = $('#linePlot').width();
     linePlotOuterHeight = $('#linePlot').height();
     linePlotMargin = {left: 50, top: 50, right: 50, bottom: 50};
@@ -693,15 +649,6 @@ function initGs() {
             .ticks(5)                   // Use approximately 5 ticks marks.
             .outerTickSize(0); // Turn off the marks at the end of the axis.
 
-
-    linePlotLine = d3.svg.line()
-            //.interpolate("basis")
-            .x(function (d) {
-                return linePlotXScale(d.Year);
-            })
-            .y(function (d) {
-                return linePlotYScale(d.Connectivity);
-            });
 // diffLine Plot
     diffLinePlotOuterWIdth = $('#diffLinePlot').width();
     diffLinePlotOuterHeight = $('#diffLinePlot').height();
@@ -728,22 +675,12 @@ function initGs() {
             .ticks(5)                   // Use approximately 5 ticks marks.
             .outerTickSize(0); // Turn off the marks at the end of the axis.
 
-    diffLinePlotLine = d3.svg.line()
-            //.interpolate("basis")
-            .x(function (d) {
-                return diffLinePlotXScale(d.Year);
-            })
-            .y(function (d) {
-                return diffLinePlotYScale(d.diffConnectivity);
-            });
-
 // Legend
     legendSvg
             .attr('width', $('#divLegend').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
-            .attr('height', $('#divLegend').height());//-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
+            .attr('height', $('#divLegend').height()); //-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
     legendG = legendSvg
             .append('g');
-
 // Bar chart
     barChartMargin = {left: 100, top: 5, right: 50, bottom: 0};
     barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
@@ -786,7 +723,6 @@ function initGs() {
 function updateBarChart(yearStart, yearEnd) {
     var title = barChartTitleSvg.selectAll(".title")
             .data([1]);
-
     title.enter().append("text")
             .attr("class", "title");
     title
@@ -800,7 +736,6 @@ function updateBarChart(yearStart, yearEnd) {
                     return "Change in internet connectivity between selected years";
                 }
             });
-
     if (mode === MODE_DEFAULT) {
         if (yearStart === undefined) {
             yearStart = $('#slider').slider("value");
@@ -838,7 +773,6 @@ function updateBarChart(yearStart, yearEnd) {
                         .style("display", "block");
                 toolTipDiv.style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY + 30) + "px");
-
                 toolTip.html(function (h) {
                     if (mode === MODE_DEFAULT) {
                         return "<strong>" + d.id + "</strong><br/>" + d3.round(getCurrentConnectivity(d, yearStart), 1) + "%";
@@ -846,7 +780,6 @@ function updateBarChart(yearStart, yearEnd) {
                         return "<strong>" + d.id + "</strong><br/>" + d3.round(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart), 1) + "%";
                     }
                 });
-
             })
             .on('mouseleave', function (d) {
                 removeHighlight(d.id);
@@ -890,7 +823,6 @@ function updateBarChart(yearStart, yearEnd) {
             .attr("stroke-width", 1)
             .attr("stroke", "#ddd");
     zeroBarChart.exit().remove();
-
     updateLegend();
 }
 
@@ -900,17 +832,14 @@ function updatePlot() {
 // Line Plot
     linePlotXAxisG.call(linePlotXAxis);
     linePlotYAxisG.call(linePlotYAxis);
-
     var title = linePlotG.selectAll(".title")
             .data([1]);
-
     title.enter().append("text")
             .attr("class", "title")
             .attr("x", (linePlotInnerWidth / 2))
             .attr("y", 0 - (linePlotMargin.top / 2))
             .attr("text-anchor", "middle")
             .text("Internet connectivity vs years");
-
     var country = linePlotG.selectAll(".country")
             .data(selectedCountries);
     country.enter().append("path")
@@ -951,7 +880,6 @@ function updatePlot() {
             .style("fill", function (d, i) {
                 return color(d.id);
             });
-
     focus.exit().remove();
 
     linePlotG.append("rect")
@@ -965,6 +893,7 @@ function updatePlot() {
                 focus.style("display", "none");
             })
             .on("mousemove", mousemove);
+
     function mousemove() {
         var bisector = d3.bisector(function (d, x) {
             return d3.ascending(d.Year, x);
@@ -977,24 +906,31 @@ function updatePlot() {
 
         focus.select("circle").attr("transform", function (d) {
             return "translate(" + linePlotXScale(d.values[ii].Year) + "," + linePlotYScale(d.values[ii].Connectivity) + ")";
-        });
+        })
+                .style("display", function (d) {
+                    return d.values[ii].Connectivity === null ? "none" : null;
+                });
+
+
         focus.select("text").attr("transform", function (d) {
             return "translate(" + linePlotXScale(d.values[ii].Year) + "," + linePlotYScale(d.values[ii].Connectivity) + ")";
-        }).text(function (d) {
-            return d3.round(d.values[ii].Connectivity, 1) + "%";
-        });
+        })
+                .text(function (d) {
+                    return d3.round(d.values[ii].Connectivity, 1) + "%";
+                })
+                .style("display", function (d) {
+                    return d.values[ii].Connectivity === null ? "none" : null;
+                });
 
         focus.select("line").attr("transform", function (d) {
             return "translate(" + linePlotXScale(d.values[ii].Year) + ",0)";
         });
-
     }
 
 
-    // diffLine Plot
+// diffLine Plot
     diffLinePlotXAxisG.call(diffLinePlotXAxis);
     diffLinePlotYAxisG.call(diffLinePlotYAxis);
-
     var zeroDiffPlot = diffLinePlotG.selectAll(".zeroDiff").data([1]);
     zeroDiffPlot.enter().append("line")
             .attr("class", "zeroDiff");
@@ -1005,17 +941,14 @@ function updatePlot() {
             .attr("y2", diffLinePlotYScale(0))
             .attr("stroke-width", 1)
             .attr("stroke", "#ddd");
-
     var titleDiff = diffLinePlotG.selectAll(".title")
             .data([1]);
-
     titleDiff.enter().append("text")
             .attr("class", "title")
             .attr("x", (diffLinePlotInnerWidth / 2))
             .attr("y", 0 - (diffLinePlotMargin.top / 2))
             .attr("text-anchor", "middle")
             .text("Internet connectivity difference vs years");
-
     var countryDiff = diffLinePlotG.selectAll(".countryDiff")
             .data(selectedCountries);
     countryDiff.enter().append("path")
@@ -1036,7 +969,6 @@ function updatePlot() {
                 removeHighlight(d.id);
             });
     countryDiff.exit().remove();
-
     // Focus
     var focusDiff = diffLinePlotG.selectAll(".focus")
             .data(selectedCountries);
@@ -1057,9 +989,7 @@ function updatePlot() {
             .style("fill", function (d, i) {
                 return color(d.id);
             });
-
     focusDiff.exit().remove();
-
     diffLinePlotG.append("rect")
             .attr("class", "overlay")
             .attr("width", diffLinePlotInnerWidth)
@@ -1080,20 +1010,24 @@ function updatePlot() {
                 d0 = selectedCountries[0].diffValues[i - 1],
                 d1 = selectedCountries[0].diffValues[i],
                 ii = x0 - d0.Year > d1.Year - x0 ? i : i - 1;
-
         focusDiff.select("circle").attr("transform", function (d) {
             return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + "," + diffLinePlotYScale(d.diffValues[ii].diffConnectivity) + ")";
-        });
+        })
+                .style("display", function (d) {
+                    return d.diffValues[ii].diffConnectivity === null ? "none" : null;
+                });
+
         focusDiff.select("text").attr("transform", function (d) {
             return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + "," + diffLinePlotYScale(d.diffValues[ii].diffConnectivity) + ")";
         }).text(function (d) {
             return d3.round(d.diffValues[ii].diffConnectivity, 1) + "%";
-        });
-
+        })
+                .style("display", function (d) {
+                    return d.diffValues[ii].diffConnectivity === null ? "none" : null;
+                });
         focusDiff.select("line").attr("transform", function (d) {
             return "translate(" + diffLinePlotXScale(d.diffValues[ii].Year) + ",0)";
         });
-
     }
 
     updateLegend();
@@ -1206,7 +1140,7 @@ function dataInit(data) {
         return {
             id: country,
             values: data.map(function (d) {
-                return {Year: d.Year, Connectivity: +d[country]};
+                return {Year: d.Year, Connectivity: d[country]};
             })
         };
     });
@@ -1216,7 +1150,7 @@ function dataInit(data) {
         for (var i = 0; i < d.values.length - 1; i++) {
             d.diffValues[i] = {
                 Year: d.values[i + 1].Year,
-                diffConnectivity: (d.values[i + 1].Connectivity - d.values[i].Connectivity)
+                diffConnectivity: d.values[i + 1].Connectivity === null || d.values[i].Connectivity === null ? null : (d.values[i + 1].Connectivity - d.values[i].Connectivity)
             };
         }
     });
@@ -1293,7 +1227,7 @@ function dataInit(data) {
 function type(d) {
     for (var col in d) {
         if (d.hasOwnProperty(col) && col !== "Year") {
-            d[col] = +d[col];
+            d[col] = d[col] === "" ? null : +d[col];
         } else if (col === "Year") {
             d[col] = +d[col];
         }
