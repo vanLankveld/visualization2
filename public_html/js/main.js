@@ -801,10 +801,14 @@ function updateBarChart(yearStart, yearEnd) {
     } else if (mode === MODE_DIFF) {
         rects
                 .attr("x", function (d) {
-                    return barChartXScale(d3.min([0, getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart)]));
+                    var diff = getCurrentConnectivity(d, yearEnd) === null || getCurrentConnectivity(d, yearStart) === null ?
+                            null : getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart);
+                    return barChartXScale(d3.min([0, diff]));
                 })
                 .attr("width", function (d) {
-                    return Math.abs(barChartXScale(getCurrentConnectivity(d, yearEnd)) - barChartXScale(getCurrentConnectivity(d, yearStart)));
+                    var diff = getCurrentConnectivity(d, yearEnd) === null || getCurrentConnectivity(d, yearStart) === null ?
+                            null : getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart);
+                    return Math.abs(diff);
                     //return barChartXScale(getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart));
                 })
                 .style("fill", function (d) {
@@ -1187,8 +1191,11 @@ function dataInit(data) {
             yearStart = $('#slider').slider("values", 0);
             yearEnd = $('#slider').slider("values", 1);
             sortValue = function (a, b) {
-                return (getCurrentConnectivity(a, yearEnd) - getCurrentConnectivity(a, yearStart)) -
-                        (getCurrentConnectivity(b, yearEnd) - getCurrentConnectivity(b, yearStart));
+                var diffA = getCurrentConnectivity(a, yearEnd) === null || getCurrentConnectivity(a, yearStart) === null ?
+                        null : getCurrentConnectivity(a, yearEnd) - getCurrentConnectivity(a, yearStart);
+                var diffB = getCurrentConnectivity(b, yearEnd) === null || getCurrentConnectivity(b, yearStart) === null ?
+                        null : getCurrentConnectivity(b, yearEnd) - getCurrentConnectivity(b, yearStart);
+                return diffA - diffB;
             };
         }
 
