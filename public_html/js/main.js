@@ -191,6 +191,7 @@ function setButtons() {
     $("#btResetView").button();
     $("#btClearSelection").button();
     $("#cbShowLegend").button();
+    $("#cbShowHistogram").button();
     $("#cbSortValues").button({
         position: {my: "right top", at: "right top", of: $('#barChartTitle')} // not working?
     });
@@ -726,7 +727,7 @@ function updateBarChart(yearStart, yearEnd) {
     title.enter().append("text")
             .attr("class", "title");
     title
-            .attr("x", (barChartOuterWidth / 2))
+            .attr("x", ($('#titleSvgDiv').width() / 2))
             .attr("y", ($('#barChartTitle').height() / 2))
             .attr("text-anchor", "middle")
             .text(function (d) {
