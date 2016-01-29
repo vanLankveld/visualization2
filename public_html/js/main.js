@@ -817,11 +817,11 @@ function updateBarChart(yearStart, yearEnd) {
             .attr("text-anchor", "middle")
             .text(function (d) {
                 if (mode === MODE_DEFAULT) {
-                    return "Internet connectivity at selected year";
+                    return "Internet connectivity";
                 } else {
-                    return "Change in internet connectivity between selected years";
+                    return "Change in internet connectivity";
                 }
-            });
+            });    
     if (mode === MODE_DEFAULT) {
         if (yearStart === undefined) {
             yearStart = $('#slider').slider("value");
