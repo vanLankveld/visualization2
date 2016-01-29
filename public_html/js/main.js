@@ -269,6 +269,9 @@ function setSlider() {
             if (mode === MODE_DEFAULT) {
                 $("#year").text(ui.value);
             } else if (mode === MODE_DIFF) {
+                if (ui.values[0] === ui.values[1]) {
+                    return false;
+                }
                 $("#year").text(ui.values[0] + " to " + ui.values[1]);
             }
             if (mode === MODE_DEFAULT) {
@@ -289,7 +292,8 @@ function setSlider() {
         var value1 = parseInt(value);
         var value2 = value1 + 1;
         if (value2 > $("#slider").slider("option", "max")) {
-            value2 = value1 - 1;
+            value1 -= 1; 
+            value2 = parseInt(value);
         }
 
         $("#slider").slider({
@@ -356,7 +360,6 @@ function addHighlight(id) {
 }
 
 function removeHighlight(id) {
-
     if (highlightedCountry != null) {
 
 // unSet LinePlot highlight
@@ -521,7 +524,7 @@ function getColor(value, mode) {
         mode = MODE_DEFAULT;
     }
 
-    if (value === "") {
+    if (value === "" || value === undefined) {
         return noDataFill.noData;
     } else if (selectedCountries.length > 0) {
         return noDataFill.selection;
