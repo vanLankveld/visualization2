@@ -113,10 +113,25 @@ var legendSvg = d3.select('#divLegend').append('svg')
         .attr('width', 250)
         .attr('height', $('#divLegend').height());
 var legendG;
-var histogramSvg = d3.select('#divHistogram').append('svg')
+
+// Histogram
+var histogramMargin;
+var histogramOuterWidth;
+var histogramOuterHeight;
+var histogramInnerWidth;
+var histogramInnerHeight;
+var histogramYScale;
+var histogramXScale;
+var histogramXAxis;
+var histogramYAxis;
+var outerHistogramSvg = d3.select('#divHistogram').append('svg')
         .attr('width', $('#divHistogram').width())
         .attr('height', $('#divHistogram').height());
 var histogramG;
+var histogramXAxisG;
+var histogramYAxisG;
+
+// Colors
 var colorDomain = [];
 var color = d3.scale.category10(); // set the colour scale 
 
@@ -148,6 +163,8 @@ var selectedCountries = [];
 var highlightedCountry = null;
 $(document).ready(function () {
     mainView = $('#main-view');
+    setButtons();
+    setHistogram();
     initGs();
     // Create slider
     setSlider();
@@ -156,7 +173,7 @@ $(document).ready(function () {
         csv = d3.csv.parse(fileContents);
         renderWorldMap(true);
     });
-    setButtons();
+
     $(window).resize(function () {
         renderWorldMap(false);
         waitForFinalEvent(function () {
@@ -165,10 +182,11 @@ $(document).ready(function () {
             initGs();
             updateBarChart();
             updatePlot();
+            updateHistogram();
         }, 500, (afterResizeId++) + "");
     });
     setLegend();
-    setHistogram();
+
     // Highlighting listener (enter en leave)
     d3.selectAll('#main-view').on('mouseover', function () {
         if (d3.event.target.tagName === "path") {
@@ -182,7 +200,10 @@ $(document).ready(function () {
             removeHighlight(target);
         }
     });
+
+    $("#divHistogram").dialog("close");
 });
+
 function setButtons() {
     $("#divMode").buttonset();
     $("#divMode input").change(function () {
@@ -192,6 +213,7 @@ function setButtons() {
         $("#cbSortValues").prop("checked", false);
         $("#cbSortValues").button("refresh");
         updateBarChart();
+        updateHistogram();
     });
     $("#btResetView").button();
     $("#btClearSelection").button();
@@ -213,6 +235,7 @@ function setButtons() {
         var checked = $("#cbShowHistogram").prop("checked");
         if (checked) {
             $("#divHistogram").dialog("open");
+            updateHistogram();
         }
         else {
             $("#divHistogram").dialog("close");
@@ -251,9 +274,11 @@ function setSlider() {
             if (mode === MODE_DEFAULT) {
                 inputColors(ui.value);
                 updateBarChart(ui.value);
+                updateHistogram(ui.value);
             } else if (mode === MODE_DIFF) {
                 inputColors(ui.values[0], ui.values[1]);
                 updateBarChart(ui.values[0], ui.values[1]);
+                updateHistogram(ui.values[0], ui.values[1]);
             }
             $("#cbSortValues").prop("checked", false);
             $("#cbSortValues").button("refresh");
@@ -297,21 +322,16 @@ function setLegend() {
 function setHistogram() {
     var show = $('#cbShowHistogram').prop('checked');
     $("#divHistogram").dialog({
-        autoOpen: false,
+        autoOpen: true,
         position: {my: "bottom", at: "bottom", of: mainView},
-        width: 300,
-        maxWidth:300,
+        resize: "auto",
+        width: 600,
         height: 300,
-        maxHeight:300,
         close: function () {
             $("#cbShowHistogram").prop("checked", false);
             $("#cbShowHistogram").button("refresh");
         },
-        resize: function (event, ui) {
-            d3.select("#divHistogram")
-                    .attr("width", ui.size.width)
-                    .attr("height", ui.size.height);
-        }
+        resizable: false
     });
 }
 
@@ -711,19 +731,42 @@ function initGs() {
             .ticks(5)                   // Use approximately 5 ticks marks.
             .outerTickSize(0); // Turn off the marks at the end of the axis.
 
-// Legend
+    // Legend
     legendSvg
             .attr('width', $('#divLegend').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
             .attr('height', $('#divLegend').height()); //-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
     legendG = legendSvg
             .append('g');
-    
-//Histogram
-    histogramSvg
-            .attr('width', $('#divHistogram').width())//-$('#divLegend').css('padding-left')-$('#divLegend').css('padding-right'))
-            .attr('height', $('#divHistogram').height()); //-$('#divLegend').css('padding-top')-$('#divLegend').css('padding-bottom'));
-    histogramG = histogramSvg
-            .append('g');
+
+    //Histogram
+    histogramMargin = {left: 50, top: 50, right: 50, bottom: 50};
+    histogramOuterWidth = $('#divHistogram').width();
+    histogramOuterHeight = $('#divHistogram').height();
+    histogramInnerWidth = histogramOuterWidth - histogramMargin.left - histogramMargin.right;
+    histogramInnerHeight = histogramOuterHeight - histogramMargin.top - histogramMargin.bottom;
+    histogramYScale = d3.scale.linear()
+            .range([histogramInnerHeight, 0]);
+    histogramXScale = d3.scale.linear()
+            .range([0, histogramInnerWidth]);
+    histogramXAxis = d3.svg.axis()
+            .scale(histogramXScale)
+            .orient("bottom")
+            .ticks(5)
+            .tickFormat(function (d) {
+                return d + "%";
+            });
+    histogramYAxis = d3.svg.axis()
+            .scale(histogramYScale)
+            .orient("left");
+    outerHistogramSvg
+            .attr('width', histogramOuterWidth)
+            .attr('height', histogramOuterHeight);
+    histogramG = outerHistogramSvg.append("g")
+            .attr("transform", "translate(" + histogramMargin.left + "," + histogramMargin.top + ")");
+    histogramXAxisG = histogramG.append("g")
+            .attr("transform", "translate(0," + histogramInnerHeight + ")");
+    histogramYAxisG = histogramG.append("g");
+
 // Bar chart
     barChartMargin = {left: 100, top: 5, right: 50, bottom: 0};
     barChartOuterWidth = $('#barChart').width() - 2 * scrollbarWidth;
@@ -1158,6 +1201,101 @@ function updateLegend() {
             });
     legend.exit().remove();
 }
+
+var hist;
+function updateHistogram(yearStart, yearEnd) {
+
+    if (mode === MODE_DEFAULT) {
+        if (yearStart === undefined) {
+            yearStart = $('#slider').slider("value");
+        }
+        histogramXScale.domain([0, 100]);
+        hist = d3.layout.histogram()
+                .value(function (d) {
+                    return getCurrentConnectivity(d, yearStart);
+                })
+                .bins([0, 20, 40, 60, 80, 100])
+                (allCountries);
+    } else if (mode === MODE_DIFF) {
+        if (yearStart === undefined || yearEnd === undefined) {
+            yearStart = $('#slider').slider("values", 0);
+            yearEnd = $('#slider').slider("values", 1);
+        }
+        histogramXScale.domain([diffLinePlotYScale.domain()[0], 100]);
+
+        hist = d3.layout.histogram()
+                .value(function (d) {
+                    var diff = getCurrentConnectivity(d, yearEnd) === null || getCurrentConnectivity(d, yearStart) === null ?
+                            null : getCurrentConnectivity(d, yearEnd) - getCurrentConnectivity(d, yearStart);
+                    return diff;
+                })
+                .bins([histogramXScale.domain()[0] - 1, 0, 20, 40, 60, 100])
+                (allCountries);
+    }
+
+    histogramYScale.domain([0, allCountries.length]);
+
+    /*
+     histogramYScale.domain([0, d3.max(hist, function (d) {
+     return d.y;
+     })]);
+     */
+    histogramXAxisG.call(histogramXAxis);
+    //histogramYAxisG.call(histogramYAxis);
+
+    var bar = histogramG.selectAll(".bar")
+            .data(hist);
+
+    var barEnter = bar.enter().append("g")
+            .attr("class", "bar");
+
+    barEnter.append("rect");
+    barEnter.append("text");
+
+    bar.attr("transform", function (d) {
+        return "translate(" + histogramXScale(d.x) + "," + histogramYScale(d.y) + ")";
+    });
+
+    bar.select("rect")
+            .attr("x", 1)
+            .attr("width", function (d) {
+                return histogramXScale(d.dx) - histogramXScale(0) - 1;
+            })
+            .attr("height", function (d) {
+                return histogramInnerHeight - histogramYScale(d.y);
+            });
+
+    if (mode === MODE_DEFAULT) {
+        bar.select("rect")
+                .style("fill", function (d, i) {
+                    return defaultColorBins.range()[i];
+                });
+    } else if (mode === MODE_DIFF) {
+        bar.select("rect")
+                .style("fill", function (d, i) {
+                    return diffColorBins.range()[i];
+                });
+    }
+
+    bar.select("rect")
+            .style("stroke", "#000")
+            .style("stroke-width", 1);
+
+    bar.select("text")
+            .attr("dy", ".75em")
+            .attr("y", -15)
+            .attr("x", function (d) {
+                return (histogramXScale(d.dx) - histogramXScale(0)) / 2;
+            })
+            .attr("text-anchor", "middle")
+            .text(function (d) {
+                return d.y;
+            });
+
+    bar.exit().remove();
+
+}
+
 
 function getCurrentConnectivity(d, sliderYear) {
     if (sliderYear === undefined) {
