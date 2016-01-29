@@ -340,7 +340,6 @@ function addHighlight(id) {
 }
 
 function removeHighlight(id) {
-
     if (highlightedCountry != null) {
 
 // unSet LinePlot highlight
@@ -505,7 +504,7 @@ function getColor(value, mode) {
         mode = MODE_DEFAULT;
     }
 
-    if (value === "") {
+    if (value === "" || value === undefined) {
         return noDataFill.noData;
     } else if (selectedCountries.length > 0) {
         return noDataFill.selection;
